@@ -112,7 +112,8 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
             public void run() {
                 try {
                     String sourceid = service.getBindId(file);
-                    Socket socket = new Socket("192.168.0.118", 7878);
+//                    Socket socket = new Socket("192.168.0.118", 7878);
+                    Socket socket = new Socket("192.168.1.107", 7878);
                     OutputStream outStream = socket.getOutputStream();
                     String head = "Content-Length=" + file.length() + ";filename=" + file.getName()
                             + ";sourceid=" + (sourceid != null ? sourceid : "") + "\r\n";

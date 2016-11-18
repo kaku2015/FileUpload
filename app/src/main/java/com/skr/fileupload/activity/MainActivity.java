@@ -30,6 +30,7 @@ import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity {
     public static final String LOG_TAG = "MainActivity";
+    private final static String[] jExtensions = {".png", ".jpg", ".mp3", ".mp4", ".avi", ".doc", ".pdf", ".txt", ".apk"};
     FileServer fileServer = new FileServer(7878);
     @BindView(R.id.directory_list_rv)
     RecyclerView mDirectoryListRv;
@@ -86,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         mDirectoryListRv.setHasFixedSize(true);
         mDirectoryListRv.setLayoutManager(new LinearLayoutManager(this,
                 LinearLayoutManager.VERTICAL, false));
-        mDirectoryListRv.setAdapter(new DirectoryListAdapter(getList(), this));
+        mDirectoryListRv.setAdapter(new DirectoryListAdapter(getStorageList(), this));
         mDirectoryListRv.setNestedScrollingEnabled(false);
     }
 
@@ -103,7 +104,20 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private List<DirectoryFile> getList() {
+/*    private List<DirectoryFile> getSampleList() {
+        List<DirectoryFile> list = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            DirectoryFile directoryFile = new DirectoryFile();
+            directoryFile.setName("测试");
+            String path = "file:///android_asset/sample";
+            directoryFile.setPath(path);
+            list.add(directoryFile);
+        }
+        return list;
+    }*/
+
+
+    private List<DirectoryFile> getStorageList() {
         List<DirectoryFile> list = new ArrayList<>();
         String sDStateString = Environment.getExternalStorageState();
         if (sDStateString.equals(Environment.MEDIA_MOUNTED)) {
@@ -113,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
                 File[] files = sdPath.listFiles();
                 if (sdPath.listFiles().length > 0) {
                     for (File file : files) {
-                        if (!file.isDirectory() && file.getName().endsWith(".apk")) {
+                        if (!file.isDirectory() && /*file.getName().endsWith(".apk")*/isNeededFile(file)) {
                             DirectoryFile directoryFile = new DirectoryFile();
                             directoryFile.setName(file.getName());
                             directoryFile.setPath(file.getAbsolutePath());
@@ -125,6 +139,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return list;
+    }
+
+    /**
+     * 判断当前文件是否为特定格式的文件
+     */
+    private boolean isNeededFile(File file) {
+        for (String suffix : jExtensions) {
+            if (file.getName().endsWith(suffix))
+                return true;
+        }
+        return false;
     }
 
 }
