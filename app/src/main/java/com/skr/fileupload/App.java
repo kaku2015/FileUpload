@@ -3,6 +3,8 @@ package com.skr.fileupload;
 import android.app.Application;
 import android.content.Context;
 
+import com.skr.fileupload.repository.db.GreenDaoManager;
+
 /**
  * @author hyw
  * @since 2016/11/18
@@ -19,5 +21,6 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         sAppContext = this;
+        GreenDaoManager.init();
     }
 }

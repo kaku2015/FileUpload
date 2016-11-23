@@ -16,10 +16,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.skr.fileupload.App;
 import com.skr.fileupload.entity.DirectoryFile;
 import com.skr.fileupload.fileupload.R;
-import com.skr.fileupload.db.UploadLogService;
+import com.skr.fileupload.repository.db.GreenDaoManager;
+import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.StreamTool;
 
 import java.io.File;
@@ -41,13 +41,11 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private static SparseBooleanArray mPaths = new SparseBooleanArray();
 
-    private UploadLogService service;
     private Activity mContext;
 
     public DirectoryListAdapter(List<DirectoryFile> list, Activity context) {
         super(list);
         mContext = context;
-        service = new UploadLogService(App.getAppContext());
     }
 
     @Override
@@ -90,11 +88,11 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                         uploadFile(file, position, viewHolder, handler);
                     } else {
                         Log.e(LOG_TAG, "文件路径不存在： " + path);
-//                        Toast.makeText(, "文件不存在", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
                     }
                 } else {
                     Log.e(LOG_TAG, "sd卡错误");
-//                    Toast.makeText(MainActivity.this, R.string.sdcarderror, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -102,7 +100,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         viewHolder.mPauseBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mPaths.put(position,true);
+                mPaths.put(position, true);
             }
         });
     }
@@ -111,9 +109,8 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    String sourceid = service.getBindId(file);
-//                    Socket socket = new Socket("192.168.0.118", 7878);
-                    Socket socket = new Socket("192.168.1.107", 7878);
+                    String sourceid = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
+                    Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                     OutputStream outStream = socket.getOutputStream();
                     String head = "Content-Length=" + file.length() + ";filename=" + file.getName()
                             + ";sourceid=" + (sourceid != null ? sourceid : "") + "\r\n";
@@ -125,7 +122,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                     String responseSourceid = items[0].substring(items[0].indexOf("=") + 1);
                     String position = items[1].substring(items[1].indexOf("=") + 1);
                     if (sourceid == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
-                        service.save(responseSourceid, file);
+                        GreenDaoManager.getInstance().saveUploadFileInfo(file.getAbsolutePath(), responseSourceid);
                     }
                     RandomAccessFile fileOutStream = new RandomAccessFile(file, "r");
                     fileOutStream.seek(Integer.valueOf(position));
@@ -144,7 +141,9 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                     }
                     Log.w(LOG_TAG, "累加已经上传的数据长度: " + length);
 
-                    if (length == file.length()) service.delete(file);
+                    if (length == file.length()) {
+                        GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath(), sourceid);
+                    }
                     fileOutStream.close();
                     outStream.close();
                     inStream.close();

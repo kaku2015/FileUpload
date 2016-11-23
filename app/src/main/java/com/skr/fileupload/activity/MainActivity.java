@@ -16,6 +16,7 @@ import android.view.View;
 import com.skr.fileupload.adapter.DirectoryListAdapter;
 import com.skr.fileupload.entity.DirectoryFile;
 import com.skr.fileupload.fileupload.R;
+import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;
 
 import java.io.File;
@@ -30,8 +31,9 @@ import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity {
     public static final String LOG_TAG = "MainActivity";
-    private final static String[] jExtensions = {".png", ".jpg", ".mp3", ".mp4", ".avi", ".doc", ".pdf", ".txt", ".apk"};
-    FileServer fileServer = new FileServer(7878);
+    private final static String[] EXTENSIONS = {".png", ".jpg", ".mp3", ".mp4", ".avi", ".doc", ".pdf", ".txt", ".apk"};
+    private FileServer fileServer = new FileServer(ApiConstants.PORT);
+
     @BindView(R.id.directory_list_rv)
     RecyclerView mDirectoryListRv;
 
@@ -104,19 +106,6 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-/*    private List<DirectoryFile> getSampleList() {
-        List<DirectoryFile> list = new ArrayList<>();
-        for (int i = 0; i < 20; i++) {
-            DirectoryFile directoryFile = new DirectoryFile();
-            directoryFile.setName("测试");
-            String path = "file:///android_asset/sample";
-            directoryFile.setPath(path);
-            list.add(directoryFile);
-        }
-        return list;
-    }*/
-
-
     private List<DirectoryFile> getStorageList() {
         List<DirectoryFile> list = new ArrayList<>();
         String sDStateString = Environment.getExternalStorageState();
@@ -145,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
      * 判断当前文件是否为特定格式的文件
      */
     private boolean isNeededFile(File file) {
-        for (String suffix : jExtensions) {
+        for (String suffix : EXTENSIONS) {
             if (file.getName().endsWith(suffix))
                 return true;
         }
