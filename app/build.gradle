@@ -25,6 +25,7 @@ android {
     }
 }
 
+// greendao
 /*
 buildscript {
     repositories {
@@ -39,7 +40,8 @@ buildscript {
 greendao {
     schemaVersion 1 // 指定数据库schema版本号，迁移等操作会用到
 //    daoPackage 'com.skr.fileupload.greendao.gen' // 通过gradle插件生成的数据库相关文件的包名，默认为你的entity所在的包名
-    targetGenDir 'src/main/java-greendao' // 自定义生成数据库文件的目录，生成的文件默认目录为：build/generated/source/greendao，可以将生成的文件放到我们的java目录中，而不是build中，这样就不用额外的设置资源目录了
+    targetGenDir 'src/main/java-greendao'
+    // 自定义生成数据库文件的目录，生成的文件默认目录为：build/generated/source/greendao，可以将生成的文件放到我们的java目录中，而不是build中，这样就不用额外的设置资源目录了
 }
 
 dependencies {
@@ -50,9 +52,23 @@ dependencies {
     compile 'com.android.support:appcompat-v7:24.2.0'
     compile 'com.android.support:design:24.2.0'
     testCompile 'junit:junit:4.12'
+    // butterknife
     compile 'com.jakewharton:butterknife:8.4.0'
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.4.0'
-    compile 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.6.0'
+    // GreenDao3
     compile 'org.greenrobot:greendao:3.2.0'
     compile 'org.greenrobot:greendao-generator:3.2.0'
+    // rx
+    compile 'io.reactivex:rxandroid:1.2.1'
+// Because RxAndroid releases are few and far between, it is recommended you also
+// explicitly depend on RxJava's latest version for bug fixes and new features.
+    compile 'io.reactivex:rxjava:1.1.6'
+    // retrofit2
+    compile 'com.squareup.retrofit2:retrofit:2.1.0'
+    // dagger2
+    compile 'com.google.dagger:dagger:2.8'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.8'
+    // eventbus
+    compile 'org.greenrobot:eventbus:3.0.0'
+
 }

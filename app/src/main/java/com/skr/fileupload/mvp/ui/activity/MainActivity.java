@@ -12,10 +12,11 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.AbsListView;
 
-import com.skr.fileupload.mvp.ui.adapter.DirectoryListAdapter;
-import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.fileupload.R;
+import com.skr.fileupload.mvp.entity.DirectoryFile;
+import com.skr.fileupload.mvp.ui.adapter.DirectoryListAdapter;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;
 
@@ -33,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String LOG_TAG = "MainActivity";
     private final static String[] EXTENSIONS = {".png", ".jpg", ".mp3", ".mp4", ".avi", ".doc", ".pdf", ".txt", ".apk"};
     private FileServer fileServer = new FileServer(ApiConstants.PORT);
+
+    public static boolean sIsScrolling;
 
     @BindView(R.id.directory_list_rv)
     RecyclerView mDirectoryListRv;
@@ -91,6 +94,17 @@ public class MainActivity extends AppCompatActivity {
                 LinearLayoutManager.VERTICAL, false));
         mDirectoryListRv.setAdapter(new DirectoryListAdapter(getStorageList(), this));
         mDirectoryListRv.setNestedScrollingEnabled(false);
+        mDirectoryListRv.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                if (newState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE) {
+                    sIsScrolling = false;
+                } else {
+                    sIsScrolling = true;
+                }
+            }
+        });
     }
 
     private void startServer() {

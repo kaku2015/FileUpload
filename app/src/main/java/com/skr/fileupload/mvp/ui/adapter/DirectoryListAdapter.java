@@ -17,8 +17,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.skr.fileupload.base.BaseRecyclerViewAdapter;
-import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.fileupload.R;
+import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.repository.db.GreenDaoManager;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.StreamTool;
@@ -69,6 +69,9 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 Handler handler = new Handler() {
                     @Override
                     public void handleMessage(Message msg) {
+/*                        if (MainActivity.sIsScrolling && !(viewHolder.mUploadPb.getProgress() == viewHolder.mUploadPb.getMax())) {
+                            return;
+                        }*/
                         viewHolder.mUploadPb.setProgress(msg.getData().getInt("length"));
                         float num = (float) viewHolder.mUploadPb.getProgress() / (float) viewHolder.mUploadPb.getMax();
                         int result = (int) (num * 100);
@@ -110,6 +113,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         new Thread(new Runnable() {
             public void run() {
                 try {
+                    Thread.sleep(500);
                     String sourceid = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
                     Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                     OutputStream outStream = socket.getOutputStream();
