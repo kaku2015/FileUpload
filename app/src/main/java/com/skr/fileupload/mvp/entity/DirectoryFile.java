@@ -1,4 +1,4 @@
-package com.skr.fileupload.entity;
+package com.skr.fileupload.mvp.entity;
 
 /**
  * @author hyw

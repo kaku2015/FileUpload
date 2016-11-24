@@ -1,4 +1,4 @@
-package com.skr.fileupload.activity;
+package com.skr.fileupload.mvp.ui.activity;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -13,8 +13,8 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 
-import com.skr.fileupload.adapter.DirectoryListAdapter;
-import com.skr.fileupload.entity.DirectoryFile;
+import com.skr.fileupload.mvp.ui.adapter.DirectoryListAdapter;
+import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.fileupload.R;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;

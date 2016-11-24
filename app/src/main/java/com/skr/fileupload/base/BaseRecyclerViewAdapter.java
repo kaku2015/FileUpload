@@ -1,4 +1,4 @@
-package com.skr.fileupload.adapter;
+package com.skr.fileupload.base;
 
 import android.support.annotation.AnimRes;
 import android.support.v7.widget.RecyclerView;

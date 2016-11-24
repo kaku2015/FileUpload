@@ -1,4 +1,4 @@
-package com.skr.fileupload.adapter;
+package com.skr.fileupload.mvp.ui.adapter;
 
 
 import android.app.Activity;
@@ -16,7 +16,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.skr.fileupload.entity.DirectoryFile;
+import com.skr.fileupload.base.BaseRecyclerViewAdapter;
+import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.fileupload.R;
 import com.skr.fileupload.repository.db.GreenDaoManager;
 import com.skr.fileupload.repository.network.ApiConstants;
