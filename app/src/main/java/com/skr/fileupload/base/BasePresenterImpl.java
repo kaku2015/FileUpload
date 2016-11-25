@@ -3,6 +3,7 @@ package com.skr.fileupload.base;
 import android.support.annotation.NonNull;
 
 import com.skr.fileupload.listener.RequestCallBack;
+import com.skr.fileupload.utils.Utils;
 
 import rx.Subscription;
 
@@ -22,14 +23,11 @@ public class BasePresenterImpl<T extends BaseView, E> implements BasePresenter, 
 
     @Override
     public void onDestroy() {
-        if (mSubscription != null && !mSubscription.isUnsubscribed()) {
-            mSubscription.unsubscribe();
-        }
+        Utils.cancelSubscription(mSubscription);
     }
 
     @Override
     public void attachView(@NonNull BaseView view) {
-        // TODO?
         mView = (T) view;
     }
 

@@ -1,9 +1,9 @@
 package com.skr.fileupload.server;
 
 import android.os.Environment;
-import android.util.Log;
 
 import com.skr.fileupload.utils.StreamTool;
+import com.socks.library.KLog;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -127,7 +127,7 @@ public class FileServer {
 
                     OutputStream outStream = socket.getOutputStream();
                     String response = "sourceid=" + id + ";position=" + position + "\r\n";
-                    Log.w(LOG_TAG, "position" + position);
+                    KLog.w(LOG_TAG, "position" + position);
                     //服务器收到客户端的请求信息后，给客户端返回响应信息：sourceid=1274773833264;position=0
                     //sourceid由服务器端生成，唯一标识上传的文件，position指示客户端从文件的什么位置开始上传
                     outStream.write(response.getBytes("utf-8"));
@@ -147,7 +147,7 @@ public class FileServer {
                         properties.store(logFile, null);//实时记录已经接收的文件长度
                         logFile.close();
                     }
-                    Log.w(LOG_TAG, "累加已经上传的数据长度: " + length);
+                    KLog.w(LOG_TAG, "累加已经上传的数据长度: " + length);
                     if (length == fileOutStream.length()) delete(id);
                     fileOutStream.close();
                     inStream.close();

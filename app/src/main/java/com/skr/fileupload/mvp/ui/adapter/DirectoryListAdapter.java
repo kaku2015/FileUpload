@@ -6,7 +6,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +21,7 @@ import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.repository.db.GreenDaoManager;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.StreamTool;
+import com.socks.library.KLog;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -47,6 +47,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
     public DirectoryListAdapter(List<DirectoryFile> list, Activity context) {
         super(list);
         mContext = context;
+
     }
 
     @Override
@@ -91,11 +92,11 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                         mPaths.put(position, false);
                         uploadFile(file, position, viewHolder, handler);
                     } else {
-                        Log.e(LOG_TAG, "文件路径不存在： " + path);
+                        KLog.e(LOG_TAG, "文件路径不存在： " + path);
                         Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    Log.e(LOG_TAG, "sd卡错误");
+                    KLog.e(LOG_TAG, "sd卡错误");
                     Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -134,7 +135,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                     byte[] buffer = new byte[1024];
                     int len = -1;
                     int length = Integer.valueOf(position);
-                    Log.w(LOG_TAG, "position: " + length);
+                    KLog.w(LOG_TAG, "position: " + length);
                     while (!mPaths.get(p) &&
                             ((len = fileOutStream.read(buffer)) != -1)) {
                         outStream.write(buffer, 0, len);
@@ -144,7 +145,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                         handler.sendMessage(msg);
 
                     }
-                    Log.w(LOG_TAG, "累加已经上传的数据长度: " + length);
+                    KLog.w(LOG_TAG, "累加已经上传的数据长度: " + length);
 
                     if (length == file.length()) {
                         GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath(), sourceid);
@@ -154,7 +155,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                     inStream.close();
                     socket.close();
                 } catch (final Exception e) {
-                    Log.e(LOG_TAG, e.toString());
+                    KLog.e(LOG_TAG, e.toString());
                     mContext.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {

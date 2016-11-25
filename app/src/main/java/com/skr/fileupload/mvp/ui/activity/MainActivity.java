@@ -10,7 +10,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 
@@ -19,6 +18,7 @@ import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.mvp.ui.adapter.DirectoryListAdapter;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;
+import com.socks.library.KLog;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -28,6 +28,7 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import hugo.weaving.DebugLog;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -78,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             for (int i = 0; i < result.length; i++) {
-                Log.d(LOG_TAG, "path----> " + result[i] + "\n");
+                KLog.d(LOG_TAG, "path----> " + result[i] + "\n");
                 paths += "path----> " + result[i] + "\n";
             }
             return paths;
@@ -147,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 判断当前文件是否为特定格式的文件
      */
+    @DebugLog
     private boolean isNeededFile(File file) {
         for (String suffix : EXTENSIONS) {
             if (file.getName().endsWith(suffix))
