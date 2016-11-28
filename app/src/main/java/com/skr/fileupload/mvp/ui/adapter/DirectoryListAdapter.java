@@ -145,23 +145,20 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                         handler.sendMessage(msg);
 
                     }
+
                     KLog.w(LOG_TAG, "累加已经上传的数据长度: " + length);
 
                     if (length == file.length()) {
-                        GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath(), sourceid);
+                        GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath());
                     }
                     fileOutStream.close();
                     outStream.close();
                     inStream.close();
                     socket.close();
+
                 } catch (final Exception e) {
                     KLog.e(LOG_TAG, e.toString());
-                    mContext.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
                 }
             }
         }).start();

@@ -2,6 +2,7 @@ package com.skr.fileupload.repository.db.entity;
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Generated;
+import org.greenrobot.greendao.annotation.Id;
 
 /**
  * @author hyw
@@ -9,10 +10,13 @@ import org.greenrobot.greendao.annotation.Generated;
  */
 @Entity
 public class UploadFileInfo {
+    @Id
+    private Long id;
     private String filePath;
     private String sourceId;
-    @Generated(hash = 402957748)
-    public UploadFileInfo(String filePath, String sourceId) {
+    @Generated(hash = 467298615)
+    public UploadFileInfo(Long id, String filePath, String sourceId) {
+        this.id = id;
         this.filePath = filePath;
         this.sourceId = sourceId;
     }
@@ -30,5 +34,11 @@ public class UploadFileInfo {
     }
     public void setSourceId(String sourceId) {
         this.sourceId = sourceId;
+    }
+    public Long getId() {
+        return this.id;
+    }
+    public void setId(Long id) {
+        this.id = id;
     }
 }

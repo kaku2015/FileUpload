@@ -10,7 +10,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.widget.AbsListView;
 
 import com.skr.fileupload.fileupload.R;
@@ -50,14 +49,8 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, getSdPaths(), Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
+        fab.setOnClickListener(view -> Snackbar.make(view, getSdPaths(), Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show());
 
         initRecycleView();
 
@@ -109,14 +102,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startServer() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    fileServer.start();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        new Thread(() -> {
+            try {
+                fileServer.start();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }).start();
     }

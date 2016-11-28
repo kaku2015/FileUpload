@@ -13,7 +13,7 @@ import org.greenrobot.greendao.database.DatabaseStatement;
 /** 
  * DAO for table "UPLOAD_FILE_INFO".
 */
-public class UploadFileInfoDao extends AbstractDao<UploadFileInfo, Void> {
+public class UploadFileInfoDao extends AbstractDao<UploadFileInfo, Long> {
 
     public static final String TABLENAME = "UPLOAD_FILE_INFO";
 
@@ -22,8 +22,9 @@ public class UploadFileInfoDao extends AbstractDao<UploadFileInfo, Void> {
      * Can be used for QueryBuilder and for referencing column names.
      */
     public static class Properties {
-        public final static Property FilePath = new Property(0, String.class, "filePath", false, "FILE_PATH");
-        public final static Property SourceId = new Property(1, String.class, "sourceId", false, "SOURCE_ID");
+        public final static Property Id = new Property(0, Long.class, "id", true, "_id");
+        public final static Property FilePath = new Property(1, String.class, "filePath", false, "FILE_PATH");
+        public final static Property SourceId = new Property(2, String.class, "sourceId", false, "SOURCE_ID");
     }
 
 
@@ -39,8 +40,9 @@ public class UploadFileInfoDao extends AbstractDao<UploadFileInfo, Void> {
     public static void createTable(Database db, boolean ifNotExists) {
         String constraint = ifNotExists? "IF NOT EXISTS ": "";
         db.execSQL("CREATE TABLE " + constraint + "\"UPLOAD_FILE_INFO\" (" + //
-                "\"FILE_PATH\" TEXT," + // 0: filePath
-                "\"SOURCE_ID\" TEXT);"); // 1: sourceId
+                "\"_id\" INTEGER PRIMARY KEY ," + // 0: id
+                "\"FILE_PATH\" TEXT," + // 1: filePath
+                "\"SOURCE_ID\" TEXT);"); // 2: sourceId
     }
 
     /** Drops the underlying database table. */
@@ -53,14 +55,19 @@ public class UploadFileInfoDao extends AbstractDao<UploadFileInfo, Void> {
     protected final void bindValues(DatabaseStatement stmt, UploadFileInfo entity) {
         stmt.clearBindings();
  
+        Long id = entity.getId();
+        if (id != null) {
+            stmt.bindLong(1, id);
+        }
+ 
         String filePath = entity.getFilePath();
         if (filePath != null) {
-            stmt.bindString(1, filePath);
+            stmt.bindString(2, filePath);
         }
  
         String sourceId = entity.getSourceId();
         if (sourceId != null) {
-            stmt.bindString(2, sourceId);
+            stmt.bindString(3, sourceId);
         }
     }
 
@@ -68,52 +75,62 @@ public class UploadFileInfoDao extends AbstractDao<UploadFileInfo, Void> {
     protected final void bindValues(SQLiteStatement stmt, UploadFileInfo entity) {
         stmt.clearBindings();
  
+        Long id = entity.getId();
+        if (id != null) {
+            stmt.bindLong(1, id);
+        }
+ 
         String filePath = entity.getFilePath();
         if (filePath != null) {
-            stmt.bindString(1, filePath);
+            stmt.bindString(2, filePath);
         }
  
         String sourceId = entity.getSourceId();
         if (sourceId != null) {
-            stmt.bindString(2, sourceId);
+            stmt.bindString(3, sourceId);
         }
     }
 
     @Override
-    public Void readKey(Cursor cursor, int offset) {
-        return null;
+    public Long readKey(Cursor cursor, int offset) {
+        return cursor.isNull(offset + 0) ? null : cursor.getLong(offset + 0);
     }    
 
     @Override
     public UploadFileInfo readEntity(Cursor cursor, int offset) {
         UploadFileInfo entity = new UploadFileInfo( //
-            cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0), // filePath
-            cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1) // sourceId
+            cursor.isNull(offset + 0) ? null : cursor.getLong(offset + 0), // id
+            cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1), // filePath
+            cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2) // sourceId
         );
         return entity;
     }
      
     @Override
     public void readEntity(Cursor cursor, UploadFileInfo entity, int offset) {
-        entity.setFilePath(cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0));
-        entity.setSourceId(cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1));
+        entity.setId(cursor.isNull(offset + 0) ? null : cursor.getLong(offset + 0));
+        entity.setFilePath(cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1));
+        entity.setSourceId(cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2));
      }
     
     @Override
-    protected final Void updateKeyAfterInsert(UploadFileInfo entity, long rowId) {
-        // Unsupported or missing PK type
-        return null;
+    protected final Long updateKeyAfterInsert(UploadFileInfo entity, long rowId) {
+        entity.setId(rowId);
+        return rowId;
     }
     
     @Override
-    public Void getKey(UploadFileInfo entity) {
-        return null;
+    public Long getKey(UploadFileInfo entity) {
+        if(entity != null) {
+            return entity.getId();
+        } else {
+            return null;
+        }
     }
 
     @Override
     public boolean hasKey(UploadFileInfo entity) {
-        // TODO
-        return false;
+        return entity.getId() != null;
     }
 
     @Override

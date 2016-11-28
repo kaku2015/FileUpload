@@ -53,13 +53,22 @@ public class GreenDaoManager {
         return null;
     }
 
+    public long getId(String filePath) {
+        UploadFileInfo uploadFileInfo = mUploadFileInfoDao.queryBuilder()
+                .where(UploadFileInfoDao.Properties.FilePath.eq(filePath))
+                .unique();
+        if (uploadFileInfo != null) {
+            return uploadFileInfo.getId();
+        }
+        return -1;
+    }
+
     public void saveUploadFileInfo(String filePath, String sourceId) {
-        UploadFileInfo uploadFileInfo = new UploadFileInfo(filePath, sourceId);
+        UploadFileInfo uploadFileInfo = new UploadFileInfo(null, filePath, sourceId);
         mUploadFileInfoDao.insert(uploadFileInfo);
     }
 
-    public void deleteUploadFileInfo(String filePath, String sourceId) {
-        UploadFileInfo uploadFileInfo = new UploadFileInfo(filePath, sourceId);
-        mUploadFileInfoDao.delete(uploadFileInfo);
+    public void deleteUploadFileInfo(String filePath) {
+        mUploadFileInfoDao.deleteByKey(getId(filePath));
     }
 }

@@ -101,7 +101,7 @@ public class FileServer {
                         id = Long.valueOf(sourceid);
                         log = find(id);//查找上传的文件是否存在上传记录
                     }
-                    File file = null;
+                    File file;
                     int position = 0;
                     if (log == null) {//如果不存在上传记录,为文件添加跟踪记录
                         String path = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
@@ -119,8 +119,10 @@ public class FileServer {
                             File logFile = new File(file.getParentFile(), file.getName() + ".log");
                             if (logFile.exists()) {
                                 Properties properties = new Properties();
-                                properties.load(new FileInputStream(logFile));
+                                FileInputStream fileInputStream = new FileInputStream(logFile);
+                                properties.load(fileInputStream);
                                 position = Integer.valueOf(properties.getProperty("length"));//读取已经上传的数据长度
+                                fileInputStream.close();
                             }
                         }
                     }
@@ -147,7 +149,9 @@ public class FileServer {
                         properties.store(logFile, null);//实时记录已经接收的文件长度
                         logFile.close();
                     }
+
                     KLog.w(LOG_TAG, "累加已经上传的数据长度: " + length);
+
                     if (length == fileOutStream.length()) delete(id);
                     fileOutStream.close();
                     inStream.close();
