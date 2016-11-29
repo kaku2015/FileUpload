@@ -14,6 +14,7 @@ import java.io.PushbackInputStream;
 import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -94,6 +95,7 @@ public class FileServer {
                     String[] items = head.split(";");
                     String filelength = items[0].substring(items[0].indexOf("=") + 1);
                     String filename = items[1].substring(items[1].indexOf("=") + 1);
+                    filename = URLDecoder.decode(filename, "UTF-8");
                     String sourceid = items[2].substring(items[2].indexOf("=") + 1);
                     long id = System.currentTimeMillis();//生产资源id，如果需要唯一性，可以采用UUID
                     FileLog log = null;

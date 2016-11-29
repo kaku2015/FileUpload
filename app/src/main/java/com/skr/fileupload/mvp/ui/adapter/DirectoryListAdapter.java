@@ -21,6 +21,7 @@ import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.repository.db.GreenDaoManager;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.StreamTool;
+import com.skr.fileupload.utils.TransformUtils;
 import com.socks.library.KLog;
 
 import java.io.File;
@@ -28,10 +29,13 @@ import java.io.OutputStream;
 import java.io.PushbackInputStream;
 import java.io.RandomAccessFile;
 import java.net.Socket;
+import java.net.URLEncoder;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import rx.Observable;
 
 /**
  * @author hyw
@@ -53,6 +57,8 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
     }
 
     private String mCurrentPath;
+
+    private boolean mIsUploading;
 
     public DirectoryListAdapter(List<DirectoryFile> list, Activity context) {
         super(list);
@@ -99,11 +105,13 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private void setFolderItem(FolderHolder folderHolder, DirectoryFile item) {
         folderHolder.mFolderNameTv.setText(item.getName());
-        folderHolder.itemView.setOnClickListener(view -> {
-            mCurrentPath = item.getPath();
-            mParentPath = new File(mCurrentPath).getParent();
-            openFolder(false);
-        });
+        folderHolder.itemView.setOnClickListener(view -> Observable.timer(200, TimeUnit.MILLISECONDS)
+                .compose(TransformUtils.defaultSchedulers())
+                .subscribe(aLong -> {
+                    mCurrentPath = item.getPath();
+                    mParentPath = new File(mCurrentPath).getParent();
+                    openFolder(false);
+                }));
     }
 
     public void openFolder(boolean isOpenParentFolder) {
@@ -139,93 +147,96 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         fileHolder.mFileNameTv.setText(item.getName());
 
         fileHolder.mUploadBtn.setOnClickListener(view -> {
-            Handler handler = new Handler() {
-                @Override
-                public void handleMessage(Message msg) {
-/*                        if (MainActivity.sIsScrolling && !(viewHolder.mUploadPb.getProgress() == viewHolder.mUploadPb.getMax())) {
-                    return;
-                }*/
-                    fileHolder.mUploadPb.setProgress(msg.getData().getInt("length"));
-                    float num = (float) fileHolder.mUploadPb.getProgress() / (float) fileHolder.mUploadPb.getMax();
-                    int result = (int) (num * 100);
-                    fileHolder.mProgressTv.setText(result + " %");
-                    if (fileHolder.mUploadPb.getProgress() == fileHolder.mUploadPb.getMax()) {
-                        Toast.makeText(mContext, fileHolder.mFileNameTv.getText().toString() +
-                                " 上传成功", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            };
-
-            String path = item.getPath();
-            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-                File file = new File(path);
-                if (file.exists()) {
-                    fileHolder.mUploadPb.setMax((int) file.length());
-                    mPaths.put(position, false);
-                    uploadFile(file, position, fileHolder, handler);
-                } else {
-                    KLog.e(LOG_TAG, "文件路径不存在： " + path);
-                    Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                KLog.e(LOG_TAG, "sd卡错误");
-                Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
-            }
+            startUpload(fileHolder, position, item);
         });
 
         fileHolder.mPauseBtn.setOnClickListener(view -> mPaths.put(position, true));
     }
 
-    private void uploadFile(final File file, final int p, final FileHolder viewHolder, final Handler handler) {
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    Thread.sleep(500);
-                    String sourceid = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
-                    Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
-                    OutputStream outStream = socket.getOutputStream();
-                    String head = "Content-Length=" + file.length() + ";filename=" + file.getName()
-                            + ";sourceid=" + (sourceid != null ? sourceid : "") + "\r\n";
-                    outStream.write(head.getBytes("utf-8"));
-
-                    PushbackInputStream inStream = new PushbackInputStream(socket.getInputStream());
-                    String response = StreamTool.readLine(inStream);
-                    String[] items = response.split(";");
-                    String responseSourceid = items[0].substring(items[0].indexOf("=") + 1);
-                    String position = items[1].substring(items[1].indexOf("=") + 1);
-                    if (sourceid == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
-                        GreenDaoManager.getInstance().saveUploadFileInfo(file.getAbsolutePath(), responseSourceid);
-                    }
-                    RandomAccessFile fileOutStream = new RandomAccessFile(file, "r");
-                    fileOutStream.seek(Integer.valueOf(position));
-                    byte[] buffer = new byte[1024];
-                    int len = -1;
-                    int length = Integer.valueOf(position);
-                    KLog.w(LOG_TAG, "position: " + length);
-                    while (!mPaths.get(p) &&
-                            ((len = fileOutStream.read(buffer)) != -1)) {
-                        outStream.write(buffer, 0, len);
-                        length += len;//累加已经上传的数据长度
-                        Message msg = new Message();
-                        msg.getData().putInt("length", length);
-                        handler.sendMessage(msg);
-
-                    }
-
-                    KLog.w(LOG_TAG, "累加已经上传的数据长度: " + length);
-
-                    if (length == file.length()) {
-                        GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath());
-                    }
-                    fileOutStream.close();
-                    outStream.close();
-                    inStream.close();
-                    socket.close();
-
-                } catch (final Exception e) {
-                    KLog.e(LOG_TAG, e.toString());
-                    mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
+    private void startUpload(final FileHolder fileHolder, int position, DirectoryFile item) {
+        Handler handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+/*                        if (MainActivity.sIsScrolling && !(viewHolder.mUploadPb.getProgress() == viewHolder.mUploadPb.getMax())) {
+                return;
+            }*/
+                fileHolder.mUploadPb.setProgress(msg.getData().getInt("length"));
+                float num = (float) fileHolder.mUploadPb.getProgress() / (float) fileHolder.mUploadPb.getMax();
+                int result = (int) (num * 100);
+                fileHolder.mProgressTv.setText(result + " %");
+                if (fileHolder.mUploadPb.getProgress() == fileHolder.mUploadPb.getMax()) {
+                    Toast.makeText(mContext, fileHolder.mFileNameTv.getText().toString() +
+                            " 上传成功", Toast.LENGTH_SHORT).show();
                 }
+            }
+        };
+
+        String path = item.getPath();
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            File file = new File(path);
+            if (file.exists()) {
+                fileHolder.mUploadPb.setMax((int) file.length());
+                mPaths.put(position, false);
+                uploadFile(file, position, fileHolder, handler);
+            } else {
+                KLog.e(LOG_TAG, "文件路径不存在： " + path);
+                Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            KLog.e(LOG_TAG, "sd卡错误");
+            Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void uploadFile(final File file, final int p, final FileHolder viewHolder, final Handler handler) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(500);
+                String sourceid = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
+                Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
+                OutputStream outStream = socket.getOutputStream();
+                String head = "Content-Length=" + file.length() + ";filename=" + URLEncoder
+                        .encode(file.getName(), "UTF-8")
+                        + ";sourceid=" + (sourceid != null ? sourceid : "") + "\r\n";
+                outStream.write(head.getBytes("utf-8"));
+
+                PushbackInputStream inStream = new PushbackInputStream(socket.getInputStream());
+                String response = StreamTool.readLine(inStream);
+                String[] items = response.split(";");
+                String responseSourceid = items[0].substring(items[0].indexOf("=") + 1);
+                String position = items[1].substring(items[1].indexOf("=") + 1);
+                if (sourceid == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
+                    GreenDaoManager.getInstance().saveUploadFileInfo(file.getAbsolutePath(), responseSourceid);
+                }
+                RandomAccessFile fileOutStream = new RandomAccessFile(file, "r");
+                fileOutStream.seek(Integer.valueOf(position));
+                byte[] buffer = new byte[1024];
+                int len = -1;
+                int length = Integer.valueOf(position);
+                KLog.w(LOG_TAG, "position: " + length);
+                while (!mPaths.get(p) &&
+                        ((len = fileOutStream.read(buffer)) != -1)) {
+                    outStream.write(buffer, 0, len);
+                    length += len;//累加已经上传的数据长度
+                    Message msg = new Message();
+                    msg.getData().putInt("length", length);
+                    handler.sendMessage(msg);
+
+                }
+
+                KLog.w(LOG_TAG, "累加已经上传的数据长度: " + length);
+
+                if (length == file.length()) {
+                    GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath());
+                }
+                fileOutStream.close();
+                outStream.close();
+                inStream.close();
+                socket.close();
+
+            } catch (final Exception e) {
+                KLog.e(LOG_TAG, e.toString());
+                mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
             }
         }).start();
     }

@@ -45,14 +45,13 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginStart="8dp"
-        android:text="上传"/>
+        android:text="开始"/>
 
     <Button
         android:id="@+id/pause_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="暂停"
-        android:visibility="gone"/>
+        android:text="暂停"/>
 
 </LinearLayout>
