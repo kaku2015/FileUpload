@@ -6,8 +6,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.RecyclerView.ViewHolder;
 import android.util.SparseBooleanArray;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -40,77 +40,143 @@ import butterknife.ButterKnife;
 public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile> {
     private static final String LOG_TAG = "DirectoryListAdapter";
 
+    private static final int TYPE_FOLDER = 10001;
+    private static final int TYPE_FILE = 10002;
+
     private static SparseBooleanArray mPaths = new SparseBooleanArray();
 
     private Activity mContext;
+    private String mParentPath;
+
+    public String getCurrentPath() {
+        return mCurrentPath;
+    }
+
+    private String mCurrentPath;
 
     public DirectoryListAdapter(List<DirectoryFile> list, Activity context) {
         super(list);
         mContext = context;
-
     }
 
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_directory_file, parent, false);
-        return new DirectoryListViewHolder(view);
+    public int getItemViewType(int position) {
+        DirectoryFile item = mData.get(position);
+        if (item.isDirectory()) {
+            return TYPE_FOLDER;
+        } else {
+            return TYPE_FILE;
+        }
     }
 
     @Override
-    public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view;
+        switch (viewType) {
+            case TYPE_FOLDER:
+                view = getView(parent, R.layout.item_directory_folder);
+                return new FolderHolder(view);
+            case TYPE_FILE:
+                view = getView(parent, R.layout.item_directory_file);
+                return new FileHolder(view);
+            default:
+                throw new RuntimeException("there is no type that matches the type " +
+                        viewType + " + make sure your using types correctly");
+        }
+    }
+
+    @Override
+    public void onBindViewHolder(final ViewHolder holder, final int position) {
         super.onBindViewHolder(holder, position);
         final DirectoryFile item = mData.get(position);
 
-        final DirectoryListViewHolder viewHolder = (DirectoryListViewHolder) holder;
-        viewHolder.mFileNameTv.setText(item.getName());
+        if (holder instanceof FolderHolder) {
+            setFolderItem((FolderHolder) holder, item);
+        } else if (holder instanceof FileHolder) {
+            setFileItem((FileHolder) holder, position, item);
+        }
+    }
 
-        viewHolder.mUploadBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Handler handler = new Handler() {
-                    @Override
-                    public void handleMessage(Message msg) {
-/*                        if (MainActivity.sIsScrolling && !(viewHolder.mUploadPb.getProgress() == viewHolder.mUploadPb.getMax())) {
-                            return;
-                        }*/
-                        viewHolder.mUploadPb.setProgress(msg.getData().getInt("length"));
-                        float num = (float) viewHolder.mUploadPb.getProgress() / (float) viewHolder.mUploadPb.getMax();
-                        int result = (int) (num * 100);
-                        viewHolder.mProgressTv.setText(result + " %");
-                        if (viewHolder.mUploadPb.getProgress() == viewHolder.mUploadPb.getMax()) {
-                            Toast.makeText(mContext, viewHolder.mFileNameTv.getText().toString() +
-                                    " 上传成功", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                };
-
-                String path = item.getPath();
-                if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-                    File file = new File(path);
-                    if (file.exists()) {
-                        viewHolder.mUploadPb.setMax((int) file.length());
-                        mPaths.put(position, false);
-                        uploadFile(file, position, viewHolder, handler);
-                    } else {
-                        KLog.e(LOG_TAG, "文件路径不存在： " + path);
-                        Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    KLog.e(LOG_TAG, "sd卡错误");
-                    Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        viewHolder.mPauseBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mPaths.put(position, true);
-            }
+    private void setFolderItem(FolderHolder folderHolder, DirectoryFile item) {
+        folderHolder.mFolderNameTv.setText(item.getName());
+        folderHolder.itemView.setOnClickListener(view -> {
+            mCurrentPath = item.getPath();
+            mParentPath = new File(mCurrentPath).getParent();
+            openFolder(false);
         });
     }
 
-    private void uploadFile(final File file, final int p, final DirectoryListViewHolder viewHolder, final Handler handler) {
+    public void openFolder(boolean isOpenParentFolder) {
+        mData.clear();
+
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            try {
+                File sdPath = new File(isOpenParentFolder ? mParentPath : mCurrentPath);
+                File[] files = sdPath.listFiles();
+                if (sdPath.listFiles().length > 0) {
+                    for (File file : files) {
+                        DirectoryFile directoryFile = new DirectoryFile();
+                        directoryFile.setName(file.getName());
+                        directoryFile.setPath(file.getAbsolutePath());
+                        directoryFile.setDirectory(file.isDirectory());
+                        mData.add(directoryFile);
+                    }
+                }
+            } catch (Exception e) {
+                KLog.e(e.toString());
+            }
+        }
+
+        notifyDataSetChanged();
+
+        if (isOpenParentFolder) {
+            mParentPath = new File(mParentPath).getParent();
+            mCurrentPath = new File(mCurrentPath).getParent();
+        }
+    }
+
+    private void setFileItem(FileHolder fileHolder, int position, DirectoryFile item) {
+        fileHolder.mFileNameTv.setText(item.getName());
+
+        fileHolder.mUploadBtn.setOnClickListener(view -> {
+            Handler handler = new Handler() {
+                @Override
+                public void handleMessage(Message msg) {
+/*                        if (MainActivity.sIsScrolling && !(viewHolder.mUploadPb.getProgress() == viewHolder.mUploadPb.getMax())) {
+                    return;
+                }*/
+                    fileHolder.mUploadPb.setProgress(msg.getData().getInt("length"));
+                    float num = (float) fileHolder.mUploadPb.getProgress() / (float) fileHolder.mUploadPb.getMax();
+                    int result = (int) (num * 100);
+                    fileHolder.mProgressTv.setText(result + " %");
+                    if (fileHolder.mUploadPb.getProgress() == fileHolder.mUploadPb.getMax()) {
+                        Toast.makeText(mContext, fileHolder.mFileNameTv.getText().toString() +
+                                " 上传成功", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            };
+
+            String path = item.getPath();
+            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                File file = new File(path);
+                if (file.exists()) {
+                    fileHolder.mUploadPb.setMax((int) file.length());
+                    mPaths.put(position, false);
+                    uploadFile(file, position, fileHolder, handler);
+                } else {
+                    KLog.e(LOG_TAG, "文件路径不存在： " + path);
+                    Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                KLog.e(LOG_TAG, "sd卡错误");
+                Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        fileHolder.mPauseBtn.setOnClickListener(view -> mPaths.put(position, true));
+    }
+
+    private void uploadFile(final File file, final int p, final FileHolder viewHolder, final Handler handler) {
         new Thread(new Runnable() {
             public void run() {
                 try {
@@ -164,7 +230,16 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         }).start();
     }
 
-    class DirectoryListViewHolder extends RecyclerView.ViewHolder {
+    public void openRootFolder(List<DirectoryFile> directoryFiles) {
+        mData.clear();
+        mData.addAll(directoryFiles);
+        notifyDataSetChanged();
+
+        mParentPath = null;
+        mCurrentPath = null;
+    }
+
+    class FileHolder extends RecyclerView.ViewHolder {
         @BindView(R.id.file_name_tv)
         TextView mFileNameTv;
         @BindView(R.id.upload_pb)
@@ -176,7 +251,17 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         @BindView(R.id.pause_btn)
         Button mPauseBtn;
 
-        DirectoryListViewHolder(View view) {
+        FileHolder(View view) {
+            super(view);
+            ButterKnife.bind(this, view);
+        }
+    }
+
+    class FolderHolder extends RecyclerView.ViewHolder {
+        @BindView(R.id.folder_name_tv)
+        TextView mFolderNameTv;
+
+        FolderHolder(View view) {
             super(view);
             ButterKnife.bind(this, view);
         }

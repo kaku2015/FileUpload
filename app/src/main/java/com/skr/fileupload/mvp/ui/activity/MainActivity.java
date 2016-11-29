@@ -2,7 +2,6 @@ package com.skr.fileupload.mvp.ui.activity;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -36,9 +35,11 @@ public class MainActivity extends AppCompatActivity {
     private FileServer fileServer = new FileServer(ApiConstants.PORT);
 
     public static boolean sIsScrolling;
+    private String[] mRootPaths;
 
     @BindView(R.id.directory_list_rv)
     RecyclerView mDirectoryListRv;
+    private DirectoryListAdapter mDirectoryListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +56,6 @@ public class MainActivity extends AppCompatActivity {
         initRecycleView();
 
         startServer();
-
-        getSdPaths();
     }
 
     private String getSdPaths() {
@@ -82,21 +81,46 @@ public class MainActivity extends AppCompatActivity {
         return "";
     }
 
+    private List<DirectoryFile> getSdLists() {
+        List<DirectoryFile> list = new ArrayList<>();
+        String[] result;
+        StorageManager storageManager = (StorageManager) getSystemService(Context.STORAGE_SERVICE);
+        try {
+            Method method = StorageManager.class.getMethod("getVolumePaths");
+            method.setAccessible(true);
+            result = (String[]) method.invoke(storageManager);
+            mRootPaths = new String[result.length];
+
+            for (int i = 0; i < result.length; i++) {
+                KLog.d(LOG_TAG, "path----> " + result[i] + "\n");
+
+                File file = new File(result[i]);
+                DirectoryFile directoryFile = new DirectoryFile();
+                directoryFile.setName(file.getName());
+                directoryFile.setPath(file.getAbsolutePath());
+                directoryFile.setDirectory(file.isDirectory());
+                list.add(directoryFile);
+                mRootPaths[i] = file.getAbsolutePath();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        return list;
+    }
+
     private void initRecycleView() {
         mDirectoryListRv.setHasFixedSize(true);
         mDirectoryListRv.setLayoutManager(new LinearLayoutManager(this,
                 LinearLayoutManager.VERTICAL, false));
-        mDirectoryListRv.setAdapter(new DirectoryListAdapter(getStorageList(), this));
+        mDirectoryListAdapter = new DirectoryListAdapter(getSdLists(), this);
+        mDirectoryListRv.setAdapter(mDirectoryListAdapter);
         mDirectoryListRv.setNestedScrollingEnabled(false);
         mDirectoryListRv.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
-                if (newState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE) {
-                    sIsScrolling = false;
-                } else {
-                    sIsScrolling = true;
-                }
+                sIsScrolling = newState != AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
             }
         });
     }
@@ -111,30 +135,6 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private List<DirectoryFile> getStorageList() {
-        List<DirectoryFile> list = new ArrayList<>();
-        String sDStateString = Environment.getExternalStorageState();
-        if (sDStateString.equals(Environment.MEDIA_MOUNTED)) {
-            try {
-                File SDFile = Environment.getExternalStorageDirectory();
-                File sdPath = new File(SDFile.getAbsolutePath());
-                File[] files = sdPath.listFiles();
-                if (sdPath.listFiles().length > 0) {
-                    for (File file : files) {
-                        if (!file.isDirectory() && /*file.getName().endsWith(".apk")*/isNeededFile(file)) {
-                            DirectoryFile directoryFile = new DirectoryFile();
-                            directoryFile.setName(file.getName());
-                            directoryFile.setPath(file.getAbsolutePath());
-                            list.add(directoryFile);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-            }
-        }
-        return list;
-    }
-
     /**
      * 判断当前文件是否为特定格式的文件
      */
@@ -147,4 +147,25 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mDirectoryListAdapter.getCurrentPath() == null) {
+            super.onBackPressed();
+        } else {
+            if (isRoot(mDirectoryListAdapter.getCurrentPath())) {
+                mDirectoryListAdapter.openRootFolder(getSdLists());
+            } else {
+                mDirectoryListAdapter.openFolder(true);
+            }
+        }
+    }
+
+    private boolean isRoot(String path) {
+        for (String rootPath : mRootPaths) {
+            if (rootPath.equals(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

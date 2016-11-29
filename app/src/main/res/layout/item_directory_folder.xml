@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+    <TextView
+        android:id="@+id/folder_name_tv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableEnd="@drawable/ic_keyboard_arrow_right_grey_400_24dp"
+        android:drawablePadding="8dp"
+        android:drawableStart="@drawable/ic_folder_blue_500_36dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:lines="2"
+        tools:text="文件夹名"/>
+
+</LinearLayout>

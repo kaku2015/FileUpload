@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.greenrobot.greendao'
 apply plugin: 'me.tatarka.retrolambda'
 apply plugin: 'com.jakewharton.hugo'
+apply plugin: 'com.antfortune.freeline'
 
 android {
     compileSdkVersion 24
@@ -9,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId "com.skr.dd.fileupload.fileupload"
-        minSdkVersion 15
+        minSdkVersion 17
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
