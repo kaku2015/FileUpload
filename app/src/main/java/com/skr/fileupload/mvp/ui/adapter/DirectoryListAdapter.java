@@ -16,6 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.skr.fileupload.base.BaseRecyclerViewAdapter;
+import com.skr.fileupload.common.Constants;
 import com.skr.fileupload.fileupload.R;
 import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.repository.db.GreenDaoManager;
@@ -33,6 +34,8 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Inject;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import rx.Observable;
@@ -49,7 +52,6 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private static SparseBooleanArray mPaths = new SparseBooleanArray();
 
-    private Activity mContext;
     private String mParentPath;
 
     public String getCurrentPath() {
@@ -58,11 +60,11 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private String mCurrentPath;
 
-    private boolean mIsUploading;
-
-    public DirectoryListAdapter(List<DirectoryFile> list, Activity context) {
-        super(list);
-        mContext = context;
+    @Inject
+    Activity mContext;
+    @Inject
+    DirectoryListAdapter() {
+        super(null);
     }
 
     @Override
@@ -166,7 +168,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 fileHolder.mProgressTv.setText(result + " %");
                 if (fileHolder.mUploadPb.getProgress() == fileHolder.mUploadPb.getMax()) {
                     Toast.makeText(mContext, fileHolder.mFileNameTv.getText().toString() +
-                            " 上传成功", Toast.LENGTH_SHORT).show();
+                            "上传成功", Toast.LENGTH_SHORT).show();
                 }
             }
         };
@@ -179,11 +181,11 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 mPaths.put(position, false);
                 uploadFile(file, position, fileHolder, handler);
             } else {
-                KLog.e(LOG_TAG, "文件路径不存在： " + path);
+                KLog.e(LOG_TAG, "file not found： " + path);
                 Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
             }
         } else {
-            KLog.e(LOG_TAG, "sd卡错误");
+            KLog.e(LOG_TAG, "sd card error");
             Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
         }
     }
@@ -192,16 +194,19 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         new Thread(() -> {
             try {
                 Thread.sleep(500);
+
                 String sourceid = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
                 Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                 OutputStream outStream = socket.getOutputStream();
                 String head = "Content-Length=" + file.length() + ";filename=" + URLEncoder
-                        .encode(file.getName(), "UTF-8")
+                        .encode(file.getName(), Constants.UTF_8)
                         + ";sourceid=" + (sourceid != null ? sourceid : "") + "\r\n";
-                outStream.write(head.getBytes("utf-8"));
+                KLog.i("head to client: " + head);
+                outStream.write(head.getBytes(Constants.UTF_8));
 
                 PushbackInputStream inStream = new PushbackInputStream(socket.getInputStream());
                 String response = StreamTool.readLine(inStream);
+                KLog.i("head from server: " + response);
                 String[] items = response.split(";");
                 String responseSourceid = items[0].substring(items[0].indexOf("=") + 1);
                 String position = items[1].substring(items[1].indexOf("=") + 1);
@@ -224,7 +229,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
                 }
 
-                KLog.w(LOG_TAG, "累加已经上传的数据长度: " + length);
+                KLog.w(LOG_TAG, "uploaded file length: " + length);
 
                 if (length == file.length()) {
                     GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath());
@@ -235,15 +240,19 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 socket.close();
 
             } catch (final Exception e) {
-                KLog.e(LOG_TAG, e.toString());
+                KLog.e(LOG_TAG, "uploadFile error: " + e.toString());
                 mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
             }
         }).start();
     }
 
     public void openRootFolder(List<DirectoryFile> directoryFiles) {
-        mData.clear();
-        mData.addAll(directoryFiles);
+        if (mData != null) {
+            mData.clear();
+            mData.addAll(directoryFiles);
+        } else {
+            mData = directoryFiles;
+        }
         notifyDataSetChanged();
 
         mParentPath = null;

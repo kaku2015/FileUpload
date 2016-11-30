@@ -12,7 +12,7 @@ import rx.Subscription;
  * @author hyw
  * @since 2016/11/25
  */
-public class Utils {
+public class MyUtils {
 
     public static void cancelSubscription(Subscription subscription) {
         if (subscription != null && !subscription.isUnsubscribed()) {

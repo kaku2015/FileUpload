@@ -9,7 +9,7 @@ import com.skr.fileupload.di.component.ActivityComponent;
 import com.skr.fileupload.di.component.DaggerActivityComponent;
 import com.skr.fileupload.di.module.ActivityModule;
 import com.skr.fileupload.fileupload.R;
-import com.skr.fileupload.utils.Utils;
+import com.skr.fileupload.utils.MyUtils;
 import com.socks.library.KLog;
 import com.squareup.leakcanary.RefWatcher;
 
@@ -54,7 +54,7 @@ public abstract class BaseActivity<T extends BasePresenter> extends AppCompatAct
 
     private void initActivityComponent() {
         mActivityComponent = DaggerActivityComponent.builder()
-                .applicationComponent(((App) getApplication()).getApplicationComponent())
+                .applicationComponent(App.getApplicationComponent())
                 .activityModule(new ActivityModule(this))
                 .build();
     }
@@ -74,7 +74,7 @@ public abstract class BaseActivity<T extends BasePresenter> extends AppCompatAct
             mPresenter.onDestroy();
         }
 
-        Utils.cancelSubscription(mSubscription);
-        Utils.fixInputMethodManagerLeak(this);
+        MyUtils.cancelSubscription(mSubscription);
+        MyUtils.fixInputMethodManagerLeak(this);
     }
 }
