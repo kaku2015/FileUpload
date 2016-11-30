@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.ViewHolder;
 import android.util.SparseBooleanArray;
@@ -15,10 +16,12 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.skr.fileupload.App;
 import com.skr.fileupload.base.BaseRecyclerViewAdapter;
 import com.skr.fileupload.common.Constants;
 import com.skr.fileupload.fileupload.R;
 import com.skr.fileupload.mvp.entity.DirectoryFile;
+import com.skr.fileupload.mvp.presenter.impl.DirectoryFilePresenterImpl;
 import com.skr.fileupload.repository.db.GreenDaoManager;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.StreamTool;
@@ -29,6 +32,7 @@ import java.io.File;
 import java.io.OutputStream;
 import java.io.PushbackInputStream;
 import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.util.List;
@@ -62,10 +66,14 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     @Inject
     Activity mContext;
+
     @Inject
     DirectoryListAdapter() {
         super(null);
     }
+
+    @Inject
+    DirectoryFilePresenterImpl mDirectoryFilePresenter;
 
     @Override
     public int getItemViewType(int position) {
@@ -156,30 +164,13 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
     }
 
     private void startUpload(final FileHolder fileHolder, int position, DirectoryFile item) {
-        Handler handler = new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-/*                        if (MainActivity.sIsScrolling && !(viewHolder.mUploadPb.getProgress() == viewHolder.mUploadPb.getMax())) {
-                return;
-            }*/
-                fileHolder.mUploadPb.setProgress(msg.getData().getInt("length"));
-                float num = (float) fileHolder.mUploadPb.getProgress() / (float) fileHolder.mUploadPb.getMax();
-                int result = (int) (num * 100);
-                fileHolder.mProgressTv.setText(result + " %");
-                if (fileHolder.mUploadPb.getProgress() == fileHolder.mUploadPb.getMax()) {
-                    Toast.makeText(mContext, fileHolder.mFileNameTv.getText().toString() +
-                            "上传成功", Toast.LENGTH_SHORT).show();
-                }
-            }
-        };
-
         String path = item.getPath();
         if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             File file = new File(path);
             if (file.exists()) {
                 fileHolder.mUploadPb.setMax((int) file.length());
                 mPaths.put(position, false);
-                uploadFile(file, position, fileHolder, handler);
+                uploadFile(file, position, new UploadProgressHandler(fileHolder));
             } else {
                 KLog.e(LOG_TAG, "file not found： " + path);
                 Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
@@ -190,50 +181,76 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         }
     }
 
-    private void uploadFile(final File file, final int p, final FileHolder viewHolder, final Handler handler) {
+    private static class UploadProgressHandler extends Handler {
+        private FileHolder mFileHolder;
+
+        UploadProgressHandler(FileHolder fileHolder) {
+            mFileHolder = fileHolder;
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            mFileHolder.mUploadPb.setProgress(msg.getData().getInt("length"));
+            String uploadedProgress = getUploadedProgress();
+            mFileHolder.mProgressTv.setText(uploadedProgress);
+            if (isUploadCompleted()) {
+                Toast.makeText(App.getAppContext(), mFileHolder.mFileNameTv.getText().toString() +
+                        "上传成功", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        private String getUploadedProgress() {
+            int UploadPercent = (int) (((float) mFileHolder.mUploadPb.getProgress() / (float) mFileHolder.mUploadPb.getMax())
+                    * 100);
+            return UploadPercent + "%";
+        }
+
+        private boolean isUploadCompleted() {
+            return mFileHolder.mUploadPb.getProgress() == mFileHolder.mUploadPb.getMax();
+        }
+    }
+
+    private void uploadFile(final File file, final int p, final Handler handler) {
         new Thread(() -> {
             try {
                 Thread.sleep(500);
 
-                String sourceid = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
                 Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                 OutputStream outStream = socket.getOutputStream();
-                String head = "Content-Length=" + file.length() + ";filename=" + URLEncoder
-                        .encode(file.getName(), Constants.UTF_8)
-                        + ";sourceid=" + (sourceid != null ? sourceid : "") + "\r\n";
-                KLog.i("head to client: " + head);
-                outStream.write(head.getBytes(Constants.UTF_8));
+
+                String sourceId = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
+                outStream.write(getHeadBytes(file, sourceId));
 
                 PushbackInputStream inStream = new PushbackInputStream(socket.getInputStream());
                 String response = StreamTool.readLine(inStream);
                 KLog.i("head from server: " + response);
                 String[] items = response.split(";");
-                String responseSourceid = items[0].substring(items[0].indexOf("=") + 1);
+                String responseSourceId = items[0].substring(items[0].indexOf("=") + 1);
                 String position = items[1].substring(items[1].indexOf("=") + 1);
-                if (sourceid == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
-                    GreenDaoManager.getInstance().saveUploadFileInfo(file.getAbsolutePath(), responseSourceid);
+                if (sourceId == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
+                    GreenDaoManager.getInstance().saveUploadFileInfo(file.getAbsolutePath(), responseSourceId);
                 }
+
                 RandomAccessFile fileOutStream = new RandomAccessFile(file, "r");
                 fileOutStream.seek(Integer.valueOf(position));
                 byte[] buffer = new byte[1024];
                 int len = -1;
                 int length = Integer.valueOf(position);
-                KLog.w(LOG_TAG, "position: " + length);
-                while (!mPaths.get(p) &&
+                KLog.i(LOG_TAG, "position: " + length);
+                while (isUploading(p) &&
                         ((len = fileOutStream.read(buffer)) != -1)) {
                     outStream.write(buffer, 0, len);
                     length += len;//累加已经上传的数据长度
                     Message msg = new Message();
                     msg.getData().putInt("length", length);
                     handler.sendMessage(msg);
-
                 }
-
-                KLog.w(LOG_TAG, "uploaded file length: " + length);
+                KLog.i(LOG_TAG, "uploaded file length: " + length);
 
                 if (length == file.length()) {
                     GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath());
                 }
+
                 fileOutStream.close();
                 outStream.close();
                 inStream.close();
@@ -242,8 +259,23 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
             } catch (final Exception e) {
                 KLog.e(LOG_TAG, "uploadFile error: " + e.toString());
                 mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
+            } finally {
+
             }
         }).start();
+    }
+
+    private boolean isUploading(int p) {
+        return !mPaths.get(p);
+    }
+
+    @NonNull
+    private byte[] getHeadBytes(File file, String sourceId) throws UnsupportedEncodingException {
+        String head = "Content-Length=" + file.length() + ";fileName=" + URLEncoder
+                .encode(file.getName(), Constants.UTF_8)
+                + ";sourceId=" + (sourceId != null ? sourceId : "") + "\r\n";
+        KLog.i("head to client: " + head);
+        return head.getBytes(Constants.UTF_8);
     }
 
     public void openRootFolder(List<DirectoryFile> directoryFiles) {

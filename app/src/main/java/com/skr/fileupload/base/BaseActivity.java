@@ -29,10 +29,30 @@ public abstract class BaseActivity<T extends BasePresenter> extends AppCompatAct
 
     protected T mPresenter;
 
+    /**
+     * Provide your layout ID
+     */
     public abstract int getLayoutId();
 
+    /**
+     * Use case:
+     * <p>
+     * mActivityComponent.inject(this);
+     */
     public abstract void initInjector();
 
+    /**
+     * Use case:
+     * <p>
+     * mPresenter = xxxPresenter;
+     * <p>
+     * mPresenter.attachView(this);
+     */
+    public abstract void initPresenter();
+
+    /**
+     * Initialize your layout components here
+     */
     public abstract void initViews();
 
     protected Subscription mSubscription;
@@ -46,6 +66,7 @@ public abstract class BaseActivity<T extends BasePresenter> extends AppCompatAct
         initInjector();
         ButterKnife.bind(this);
         initToolBar();
+        initPresenter();
         initViews();
         if (mPresenter != null) {
             mPresenter.onCreate();

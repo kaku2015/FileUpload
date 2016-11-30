@@ -16,15 +16,12 @@ import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;
 import com.socks.library.KLog;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
 
 import butterknife.BindView;
-import hugo.weaving.DebugLog;
-
 
 public class MainActivity extends BaseActivity implements IDirectoryFileView {
     public static final String LOG_TAG = "MainActivity";
@@ -56,16 +53,27 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
     }
 
     @Override
-    public void initViews() {
+    public void initPresenter() {
         mPresenter = mIDirectoryFilePresenter;
         mPresenter.attachView(this);
+    }
 
+    @Override
+    public void initViews() {
         mFabBtn.setOnClickListener(view -> Snackbar.make(view, getSdPaths(), Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show());
 
         initRecycleView();
 
         startServer();
+    }
+
+    private String getSdPaths() {
+        String paths = null;
+        for (String mRootPath : mRootPaths) {
+            paths += "path----> " + mRootPath + "\n";
+        }
+        return paths;
     }
 
     private void initRecycleView() {
@@ -83,14 +91,6 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
         });
     }
 
-    private String getSdPaths() {
-        String paths = null;
-        for (String mRootPath : mRootPaths) {
-            paths += "path----> " + mRootPath + "\n";
-        }
-        return paths;
-    }
-
     private void startServer() {
         new Thread(() -> {
             try {
@@ -101,9 +101,11 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
         }).start();
     }
 
+/*    */
+
     /**
      * 判断当前文件是否为特定格式的文件
-     */
+     *//*
     @DebugLog
     private boolean isNeededFile(File file) {
         for (String suffix : EXTENSIONS) {
@@ -111,13 +113,14 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
                 return true;
         }
         return false;
-    }
-
+    }*/
     @Override
     public void onBackPressed() {
+        // 当当前已经是根目录，退出
         if (mDirectoryListAdapter.getCurrentPath() == null) {
             super.onBackPressed();
         } else {
+            // 当上一级是根目录，重新显示根目录文件列表
             if (isRoot(mDirectoryListAdapter.getCurrentPath())) {
                 mDirectoryListAdapter.openRootFolder(mDirectoryFiles);
             } else {
