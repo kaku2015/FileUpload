@@ -122,7 +122,7 @@ public class FileServer {
 
                     OutputStream outStream = socket.getOutputStream();
                     String response = "sourceId=" + id + ";position=" + position + "\r\n";
-                    KLog.w(LOG_TAG, "position" + position);
+                    KLog.i(LOG_TAG, "position" + position);
                     //服务器收到客户端的请求信息后，给客户端返回响应信息：sourceId=1274773833264;position=0
                     //sourceid由服务器端生成，唯一标识上传的文件，position指示客户端从文件的什么位置开始上传
                     outStream.write(response.getBytes("UTF-8"));
@@ -143,7 +143,7 @@ public class FileServer {
                         logFile.close();
                     }
 
-                    KLog.w(LOG_TAG, "uploaded file length: " + length);
+                    KLog.i(LOG_TAG, "uploaded file length: " + length);
 
                     if (length == fileOutStream.length()) delete(id);
 

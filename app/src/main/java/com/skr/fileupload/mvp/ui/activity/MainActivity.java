@@ -1,5 +1,6 @@
 package com.skr.fileupload.mvp.ui.activity;
 
+import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
@@ -14,6 +15,7 @@ import com.skr.fileupload.mvp.ui.adapter.DirectoryListAdapter;
 import com.skr.fileupload.mvp.ui.view.IDirectoryFileView;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;
+import com.skr.fileupload.wigets.DividerItemDecoration;
 import com.socks.library.KLog;
 
 import java.util.ArrayList;
@@ -59,6 +61,11 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
     }
 
     @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
     public void initViews() {
         mFabBtn.setOnClickListener(view -> Snackbar.make(view, getSdPaths(), Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show());
@@ -78,6 +85,8 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
 
     private void initRecycleView() {
         mDirectoryListRv.setHasFixedSize(true);
+        mDirectoryListRv.addItemDecoration(new DividerItemDecoration(this,
+                DividerItemDecoration.VERTICAL_LIST));
         mDirectoryListRv.setLayoutManager(new LinearLayoutManager(this,
                 LinearLayoutManager.VERTICAL, false));
         mDirectoryListRv.setAdapter(mDirectoryListAdapter);
