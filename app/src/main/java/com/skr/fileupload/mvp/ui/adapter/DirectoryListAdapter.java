@@ -115,7 +115,8 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private void setFolderItem(FolderHolder folderHolder, DirectoryFile item) {
         folderHolder.mFolderNameTv.setText(item.getName());
-        folderHolder.itemView.setOnClickListener(view -> Observable.timer(200, TimeUnit.MILLISECONDS)
+        folderHolder.itemView.setOnClickListener(view ->
+                Observable.timer(200, TimeUnit.MILLISECONDS)
                 .compose(TransformUtils.defaultSchedulers())
                 .subscribe(aLong -> {
                     mCurrentPath = item.getPath();
@@ -213,7 +214,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
     private void uploadFile(final File file, final int p, final Handler handler) {
         new Thread(() -> {
             try {
-                Thread.sleep(500);
+//                Thread.sleep(500);
 
                 Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                 OutputStream outStream = socket.getOutputStream();
@@ -237,13 +238,19 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 int len = -1;
                 int length = Integer.valueOf(position);
                 KLog.i(LOG_TAG, "position: " + length);
+                int uploadCount = 0;
+                int fileLength = (int) file.length();
                 while (isUploading(p) &&
                         ((len = fileOutStream.read(buffer)) != -1)) {
                     outStream.write(buffer, 0, len);
                     length += len;//累加已经上传的数据长度
-                    Message msg = new Message();
-                    msg.getData().putInt("length", length);
-                    handler.sendMessage(msg);
+
+                    if (isUploadPercentInteger(length, uploadCount, fileLength)) {
+                        uploadCount += 1;
+                        Message msg = new Message();
+                        msg.getData().putInt("length", length);
+                        handler.sendMessage(msg);
+                    }
                 }
                 KLog.i(LOG_TAG, "uploaded file length: " + length);
 
@@ -267,6 +274,10 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private boolean isUploading(int p) {
         return !mPaths.get(p);
+    }
+
+    private boolean isUploadPercentInteger(int length, int uploadCount, int fileLength) {
+        return (length * 100 / fileLength) > uploadCount;
     }
 
     @NonNull
