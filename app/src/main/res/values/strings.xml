@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">FileUpload</string>
+    <string name="app_name">Sample</string>
+    <string name="accessibility_service_description">辅助功能描述</string>
+    <string name="title_activity_second">SecondActivity</string>
 </resources>
