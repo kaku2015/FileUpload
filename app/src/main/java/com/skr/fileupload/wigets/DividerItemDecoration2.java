@@ -10,7 +10,7 @@ import android.util.TypedValue;
 import android.view.View;
 
 import com.skr.fileupload.App;
-import com.skr.fileupload.fileupload.R;
+import com.skr.fileupload.R;
 
 /**
  * @author hyw

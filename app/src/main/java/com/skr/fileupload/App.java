@@ -9,7 +9,6 @@ import android.os.StrictMode;
 import com.skr.fileupload.di.component.ApplicationComponent;
 import com.skr.fileupload.di.component.DaggerApplicationComponent;
 import com.skr.fileupload.di.module.ApplicationModule;
-import com.skr.fileupload.fileupload.BuildConfig;
 import com.skr.fileupload.repository.db.GreenDaoManager;
 import com.socks.library.KLog;
 import com.squareup.leakcanary.LeakCanary;
@@ -38,6 +37,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        KLog.d("App onCreate()");
         if (LeakCanary.isInAnalyzerProcess(this)) {
             // This process is dedicated to LeakCanary for heap analysis.
             // You should not init your app in this process.
@@ -58,7 +58,7 @@ public class App extends Application {
 /*        if (BuildConfig.DEBUG) {
             refWatcher = LeakCanary.install(this);
         } else {*/
-            refWatcher = installLeakCanary();
+        refWatcher = installLeakCanary();
 //        }
     }
 

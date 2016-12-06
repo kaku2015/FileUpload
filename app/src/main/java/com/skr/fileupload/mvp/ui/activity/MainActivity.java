@@ -1,5 +1,7 @@
 package com.skr.fileupload.mvp.ui.activity;
 
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -7,14 +9,16 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.widget.AbsListView;
 
+import com.skr.fileupload.MyBroadcastReceiver;
+import com.skr.fileupload.R;
 import com.skr.fileupload.base.BaseActivity;
-import com.skr.fileupload.fileupload.R;
 import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.mvp.presenter.impl.DirectoryFilePresenterImpl;
 import com.skr.fileupload.mvp.ui.adapter.DirectoryListAdapter;
 import com.skr.fileupload.mvp.ui.view.IDirectoryFileView;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;
+import com.skr.fileupload.utils.ApkController;
 import com.skr.fileupload.wigets.DividerItemDecoration;
 import com.socks.library.KLog;
 
@@ -44,6 +48,8 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
     @Inject
     DirectoryListAdapter mDirectoryListAdapter;
 
+    MyBroadcastReceiver mMyBroadcastReceiver;
+
     @Override
     public int getLayoutId() {
         return R.layout.activity_main;
@@ -63,6 +69,34 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        registerBroadcast();
+
+    }
+
+    private void registerBroadcast() {
+        final IntentFilter filter = new IntentFilter();
+        // 屏幕灭屏广播
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        // 屏幕亮屏广播
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        // 屏幕解锁广播
+        filter.addAction(Intent.ACTION_USER_PRESENT);
+        // 当长按电源键弹出“关机”对话或者锁屏时系统会发出这个广播
+        // example：有时候会用到系统对话框，权限可能很高，会覆盖在锁屏界面或者“关机”对话框之上，
+        // 所以监听这个广播，当收到时就隐藏自己的对话，如点击pad右下角部分弹出的对话框
+        filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
+
+        mMyBroadcastReceiver = new MyBroadcastReceiver();
+        registerReceiver(mMyBroadcastReceiver, filter);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ApkController.uninstall("com.skr.fileupload", this);
+
+        unregisterReceiver(mMyBroadcastReceiver);
     }
 
     @Override

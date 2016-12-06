@@ -5,10 +5,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
 import com.skr.fileupload.App;
+import com.skr.fileupload.R;
 import com.skr.fileupload.di.component.ActivityComponent;
 import com.skr.fileupload.di.component.DaggerActivityComponent;
 import com.skr.fileupload.di.module.ActivityModule;
-import com.skr.fileupload.fileupload.R;
 import com.skr.fileupload.utils.MyUtils;
 import com.socks.library.KLog;
 import com.squareup.leakcanary.RefWatcher;

@@ -17,9 +17,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.skr.fileupload.App;
+import com.skr.fileupload.R;
 import com.skr.fileupload.base.BaseRecyclerViewAdapter;
 import com.skr.fileupload.common.Constants;
-import com.skr.fileupload.fileupload.R;
 import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.mvp.presenter.impl.DirectoryFilePresenterImpl;
 import com.skr.fileupload.repository.db.GreenDaoManager;

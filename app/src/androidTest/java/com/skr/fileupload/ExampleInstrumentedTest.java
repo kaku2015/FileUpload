@@ -1,4 +1,4 @@
-package com.skr.fileupload.fileupload;
+package com.skr.fileupload;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

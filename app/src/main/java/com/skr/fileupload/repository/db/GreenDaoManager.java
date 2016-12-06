@@ -1,7 +1,7 @@
 package com.skr.fileupload.repository.db;
 
 import com.skr.fileupload.App;
-import com.skr.fileupload.fileupload.BuildConfig;
+import com.skr.fileupload.BuildConfig;
 import com.skr.fileupload.repository.db.entity.DaoMaster;
 import com.skr.fileupload.repository.db.entity.DaoSession;
 import com.skr.fileupload.repository.db.entity.UploadFileInfo;
