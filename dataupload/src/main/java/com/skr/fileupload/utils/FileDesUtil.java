@@ -1,5 +1,7 @@
 package com.skr.fileupload.utils;
 
+import com.socks.library.KLog;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -29,6 +31,7 @@ public class FileDesUtil {
      * @param toFile   加密后存放的文件 如c:/加密后文件.txt
      */
     public static void encrypt(String fromFile, String toFile) throws Exception {
+        KLog.i("encrypting...");
         //初始化秘钥
         SecretKey secretKey = new SecretKeySpec(KEY, KEY_ALGORITHM);
 
@@ -45,6 +48,7 @@ public class FileDesUtil {
         cis.close();
         is.close();
         out.close();
+        KLog.i("encrypt completed");
     }
 
     /**
@@ -54,6 +58,7 @@ public class FileDesUtil {
      * @param toFile   解密后存放的文件 如c:/ test/解密后文件.txt
      */
     public static void decrypt(String fromFile, String toFile) throws Exception {
+        KLog.i("decrypting...");
         SecretKey secretKey = new SecretKeySpec(KEY, KEY_ALGORITHM);
 
         Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
@@ -69,5 +74,6 @@ public class FileDesUtil {
         cos.close();
         out.close();
         is.close();
+        KLog.i("decrypt completed");
     }
 }

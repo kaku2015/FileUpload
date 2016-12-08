@@ -21,7 +21,7 @@ import com.skr.fileupload.base.BaseRecyclerViewAdapter;
 import com.skr.fileupload.common.Constants;
 import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.mvp.presenter.impl.DirectoryFilePresenterImpl;
-import com.skr.fileupload.repository.db.GreenDaoManager;
+import com.skr.fileupload.repository.file.DataRecordManager;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.DesUtil;
 import com.skr.fileupload.utils.FileDesUtil;
@@ -219,7 +219,8 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                 OutputStream outStream = socket.getOutputStream();
 
-                String sourceId = GreenDaoManager.getInstance().getSourceIdByPath(encryptedFile.getAbsolutePath());
+//                String sourceId = GreenDaoManager.getInstance().getSourceIdByPath(encryptedFile.getAbsolutePath());
+                String sourceId = DataRecordManager.getSourceId(encryptedFile.getAbsolutePath());
                 outStream.write(getHeadBytes(encryptedFile, sourceId));
 
                 PushbackInputStream inStream = new PushbackInputStream(socket.getInputStream());
@@ -229,7 +230,8 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 String responseSourceId = items[0].substring(items[0].indexOf("=") + 1);
                 String position = items[1].substring(items[1].indexOf("=") + 1);
                 if (sourceId == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
-                    GreenDaoManager.getInstance().saveUploadFileInfo(encryptedFile.getAbsolutePath(), responseSourceId);
+//                    GreenDaoManager.getInstance().saveUploadFileInfo(encryptedFile.getAbsolutePath(), responseSourceId);
+                    DataRecordManager.saveSourceId(responseSourceId, encryptedFile.getAbsolutePath());
                 }
 
                 RandomAccessFile fileOutStream = new RandomAccessFile(encryptedFile, "r");
@@ -256,7 +258,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
                 if (length == encryptedFile.length()) {
                     encryptedFile.delete();
-                    GreenDaoManager.getInstance().deleteUploadFileInfo(encryptedFile.getAbsolutePath());
+//                    GreenDaoManager.getInstance().deleteUploadFileInfo(encryptedFile.getAbsolutePath());
                 }
 
                 fileOutStream.close();
@@ -273,7 +275,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     @NonNull
     private File encryptFile(File sourceFile) throws Exception {
-        String targetRootPath = StorageUtils.getSdPath() + "/decrypt_file/";
+        String targetRootPath = StorageUtils.getSdPath() + "/encrypt_file/";
         String fileName = DesUtil.encrypt(sourceFile.getName());
         String targetPath = targetRootPath + fileName;
         File file = new File(targetPath);
