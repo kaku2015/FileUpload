@@ -6,7 +6,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
-import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.ViewHolder;
 import android.util.SparseBooleanArray;
 import android.view.View;
@@ -24,6 +23,9 @@ import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.mvp.presenter.impl.DirectoryFilePresenterImpl;
 import com.skr.fileupload.repository.db.GreenDaoManager;
 import com.skr.fileupload.repository.network.ApiConstants;
+import com.skr.fileupload.utils.DesUtil;
+import com.skr.fileupload.utils.FileDesUtil;
+import com.skr.fileupload.utils.StorageUtils;
 import com.skr.fileupload.utils.StreamTool;
 import com.skr.fileupload.utils.TransformUtils;
 import com.socks.library.KLog;
@@ -117,12 +119,12 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         folderHolder.mFolderNameTv.setText(item.getName());
         folderHolder.itemView.setOnClickListener(view ->
                 Observable.timer(200, TimeUnit.MILLISECONDS)
-                .compose(TransformUtils.defaultSchedulers())
-                .subscribe(aLong -> {
-                    mCurrentPath = item.getPath();
-                    mParentPath = new File(mCurrentPath).getParent();
-                    openFolder(false);
-                }));
+                        .compose(TransformUtils.defaultSchedulers())
+                        .subscribe(aLong -> {
+                            mCurrentPath = item.getPath();
+                            mParentPath = new File(mCurrentPath).getParent();
+                            openFolder(false);
+                        }));
     }
 
     public void openFolder(boolean isOpenParentFolder) {
@@ -157,9 +159,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
     private void setFileItem(FileHolder fileHolder, int position, DirectoryFile item) {
         fileHolder.mFileNameTv.setText(item.getName());
 
-        fileHolder.mUploadBtn.setOnClickListener(view -> {
-            startUpload(fileHolder, position, item);
-        });
+        fileHolder.mUploadBtn.setOnClickListener(view -> startUpload(fileHolder, position, item));
 
         fileHolder.mPauseBtn.setOnClickListener(view -> mPaths.put(position, true));
     }
@@ -174,11 +174,11 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 uploadFile(file, position, new UploadProgressHandler(fileHolder));
             } else {
                 KLog.e(LOG_TAG, "file not found： " + path);
-                Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
             }
         } else {
             KLog.e(LOG_TAG, "sd card error");
-            Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -211,16 +211,16 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         }
     }
 
-    private void uploadFile(final File file, final int p, final Handler handler) {
+    private void uploadFile(final File sourceFile, final int p, final Handler handler) {
         new Thread(() -> {
             try {
-//                Thread.sleep(500);
+                File encryptedFile = encryptFile(sourceFile);
 
                 Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                 OutputStream outStream = socket.getOutputStream();
 
-                String sourceId = GreenDaoManager.getInstance().getSourceIdByPath(file.getAbsolutePath());
-                outStream.write(getHeadBytes(file, sourceId));
+                String sourceId = GreenDaoManager.getInstance().getSourceIdByPath(encryptedFile.getAbsolutePath());
+                outStream.write(getHeadBytes(encryptedFile, sourceId));
 
                 PushbackInputStream inStream = new PushbackInputStream(socket.getInputStream());
                 String response = StreamTool.readLine(inStream);
@@ -229,17 +229,17 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 String responseSourceId = items[0].substring(items[0].indexOf("=") + 1);
                 String position = items[1].substring(items[1].indexOf("=") + 1);
                 if (sourceId == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
-                    GreenDaoManager.getInstance().saveUploadFileInfo(file.getAbsolutePath(), responseSourceId);
+                    GreenDaoManager.getInstance().saveUploadFileInfo(encryptedFile.getAbsolutePath(), responseSourceId);
                 }
 
-                RandomAccessFile fileOutStream = new RandomAccessFile(file, "r");
+                RandomAccessFile fileOutStream = new RandomAccessFile(encryptedFile, "r");
                 fileOutStream.seek(Integer.valueOf(position));
                 byte[] buffer = new byte[1024];
                 int len = -1;
                 int length = Integer.valueOf(position);
                 KLog.i(LOG_TAG, "position: " + length);
                 int uploadCount = 0;
-                int fileLength = (int) file.length();
+                int fileLength = (int) encryptedFile.length();
                 while (isUploading(p) &&
                         ((len = fileOutStream.read(buffer)) != -1)) {
                     outStream.write(buffer, 0, len);
@@ -254,8 +254,9 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 }
                 KLog.i(LOG_TAG, "uploaded file length: " + length);
 
-                if (length == file.length()) {
-                    GreenDaoManager.getInstance().deleteUploadFileInfo(file.getAbsolutePath());
+                if (length == encryptedFile.length()) {
+                    encryptedFile.delete();
+                    GreenDaoManager.getInstance().deleteUploadFileInfo(encryptedFile.getAbsolutePath());
                 }
 
                 fileOutStream.close();
@@ -266,10 +267,23 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
             } catch (final Exception e) {
                 KLog.e(LOG_TAG, "uploadFile error: " + e.toString());
                 mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
-            } finally {
-
             }
         }).start();
+    }
+
+    @NonNull
+    private File encryptFile(File sourceFile) throws Exception {
+        String targetRootPath = StorageUtils.getSdPath() + "/decrypt_file/";
+        String fileName = DesUtil.encrypt(sourceFile.getName());
+        String targetPath = targetRootPath + fileName;
+        File file = new File(targetPath);
+        if (!file.getParentFile().exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            file.getParentFile().mkdirs();
+        }
+
+        FileDesUtil.encrypt(sourceFile.getAbsolutePath(), targetPath);
+        return file;
     }
 
     private boolean isUploading(int p) {
@@ -285,8 +299,9 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         String head = "Content-Length=" + file.length() + ";fileName=" + URLEncoder
                 .encode(file.getName(), Constants.UTF_8)
                 + ";sourceId=" + (sourceId != null ? sourceId : "") + "\r\n";
-        KLog.i("head to client: " + head);
-        return head.getBytes(Constants.UTF_8);
+        KLog.i("head to server: " + head);
+
+        return head.getBytes();
     }
 
     public void openRootFolder(List<DirectoryFile> directoryFiles) {
@@ -302,7 +317,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         mCurrentPath = null;
     }
 
-    class FileHolder extends RecyclerView.ViewHolder {
+    class FileHolder extends ViewHolder {
         @BindView(R.id.file_name_tv)
         TextView mFileNameTv;
         @BindView(R.id.upload_pb)
@@ -320,7 +335,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
         }
     }
 
-    class FolderHolder extends RecyclerView.ViewHolder {
+    class FolderHolder extends ViewHolder {
         @BindView(R.id.folder_name_tv)
         TextView mFolderNameTv;
 

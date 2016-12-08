@@ -2,6 +2,8 @@ package com.skr.fileupload.server;
 
 import android.os.Environment;
 
+import com.skr.fileupload.utils.DesUtil;
+import com.skr.fileupload.utils.FileDesUtil;
 import com.skr.fileupload.utils.StreamTool;
 import com.socks.library.KLog;
 
@@ -59,7 +61,7 @@ public class FileServer {
     private final class SocketTask implements Runnable {
         private Socket socket = null;
 
-         SocketTask(Socket socket) {
+        SocketTask(Socket socket) {
             this.socket = socket;
         }
 
@@ -75,7 +77,7 @@ public class FileServer {
                 //得到客户端发来的第一行协议数据：Content-Length=143253434;fileName=xxx.3gp;sourceId=
                 //如果用户初次上传文件，sourceId的值为空。
                 String head = StreamTool.readLine(inStream);
-                System.out.println(head);
+                KLog.d(head);
 
                 //黑客假如注入很长的第一行数据，那么服务器肯定会由于内存溢出而崩溃
                 //实际项目中这里要判断第一行协议内容不能超过多长，设置一个长度上线，防止内存溢出异常。
@@ -145,7 +147,12 @@ public class FileServer {
 
                     KLog.i(LOG_TAG, "uploaded file length: " + length);
 
-                    if (length == fileOutStream.length()) delete(id);
+                    if (length == fileOutStream.length()) {
+                        FileDesUtil.decrypt(file.getAbsolutePath(), file.getParent() + "/decrypt_" +
+                                DesUtil.decrypt(file.getName()));
+                        file.delete();
+                        delete(id);
+                    }
 
                     fileOutStream.close();
                     inStream.close();
