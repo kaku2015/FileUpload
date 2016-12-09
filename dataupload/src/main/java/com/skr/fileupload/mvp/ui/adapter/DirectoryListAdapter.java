@@ -25,12 +25,12 @@ import com.skr.fileupload.repository.file.DataRecordManager;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.DesUtil;
 import com.skr.fileupload.utils.FileDesUtil;
-import com.skr.fileupload.utils.StorageUtils;
 import com.skr.fileupload.utils.StreamTool;
 import com.skr.fileupload.utils.TransformUtils;
 import com.socks.library.KLog;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PushbackInputStream;
 import java.io.RandomAccessFile;
@@ -166,20 +166,20 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private void startUpload(final FileHolder fileHolder, int position, DirectoryFile item) {
         String path = item.getPath();
-        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            File file = new File(path);
-            if (file.exists()) {
-                fileHolder.mUploadPb.setMax((int) file.length());
-                mPaths.put(position, false);
-                uploadFile(file, position, new UploadProgressHandler(fileHolder));
-            } else {
-                KLog.e(LOG_TAG, "file not found： " + path);
-//                Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
-            }
+//        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+        File file = new File(path);
+        if (file.exists()) {
+            fileHolder.mUploadPb.setMax((int) file.length());
+            mPaths.put(position, false);
+            uploadFile(file, position, new UploadProgressHandler(fileHolder));
         } else {
-            KLog.e(LOG_TAG, "sd card error");
-//            Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
+            KLog.e(LOG_TAG, "file not found： " + path);
+//                Toast.makeText(mContext, "文件不存在", Toast.LENGTH_SHORT).show();
         }
+//        } else {
+//            KLog.e(LOG_TAG, "sd card error");
+////            Toast.makeText(mContext, "sd卡错误", Toast.LENGTH_SHORT).show();
+//        }
     }
 
     private static class UploadProgressHandler extends Handler {
@@ -213,17 +213,21 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
 
     private void uploadFile(final File sourceFile, final int p, final Handler handler) {
         new Thread(() -> {
+            Socket socket = null;
+            OutputStream outStream = null;
+            PushbackInputStream inStream = null;
+            RandomAccessFile fileOutStream = null;
             try {
                 File encryptedFile = encryptFile(sourceFile);
 
-                Socket socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
-                OutputStream outStream = socket.getOutputStream();
+                socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
+                outStream = socket.getOutputStream();
 
 //                String sourceId = GreenDaoManager.getInstance().getSourceIdByPath(encryptedFile.getAbsolutePath());
                 String sourceId = DataRecordManager.getSourceId(encryptedFile.getAbsolutePath());
                 outStream.write(getHeadBytes(encryptedFile, sourceId));
 
-                PushbackInputStream inStream = new PushbackInputStream(socket.getInputStream());
+                inStream = new PushbackInputStream(socket.getInputStream());
                 String response = StreamTool.readLine(inStream);
                 KLog.i("head from server: " + response);
                 String[] items = response.split(";");
@@ -234,7 +238,7 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                     DataRecordManager.saveSourceId(responseSourceId, encryptedFile.getAbsolutePath());
                 }
 
-                RandomAccessFile fileOutStream = new RandomAccessFile(encryptedFile, "r");
+                fileOutStream = new RandomAccessFile(encryptedFile, "r");
                 fileOutStream.seek(Integer.valueOf(position));
                 byte[] buffer = new byte[1024];
                 int len = -1;
@@ -257,25 +261,50 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 KLog.i(LOG_TAG, "uploaded file length: " + length);
 
                 if (length == encryptedFile.length()) {
-                    encryptedFile.delete();
+                    boolean result = encryptedFile.delete();
+                    KLog.i(LOG_TAG, "delete encrypt file is success: " + result);
 //                    GreenDaoManager.getInstance().deleteUploadFileInfo(encryptedFile.getAbsolutePath());
                 }
-
-                fileOutStream.close();
-                outStream.close();
-                inStream.close();
-                socket.close();
-
-            } catch (final Exception e) {
+            } catch (Exception e) {
                 KLog.e(LOG_TAG, "uploadFile error: " + e.toString());
-                mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
+//                mContext.runOnUiThread(() -> Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show());
+            } finally {
+                try {
+                    if (fileOutStream != null) {
+                        fileOutStream.close();
+                    }
+                } catch (IOException e) {
+                    KLog.e(LOG_TAG, e.toString());
+                }
+                try {
+                    if (outStream != null) {
+                        outStream.close();
+                    }
+                } catch (IOException e) {
+                    KLog.e(LOG_TAG, e.toString());
+                }
+                try {
+                    if (inStream != null) {
+                        inStream.close();
+                    }
+                } catch (IOException e) {
+                    KLog.e(LOG_TAG, e.toString());
+                }
+                try {
+                    if (socket != null) {
+                        socket.close();
+                    }
+                } catch (IOException e) {
+                    KLog.e(LOG_TAG, e.toString());
+                }
             }
         }).start();
     }
 
     @NonNull
     private File encryptFile(File sourceFile) throws Exception {
-        String targetRootPath = StorageUtils.getSdPath() + "/encrypt_file/";
+        String targetRootPath = mContext.getFilesDir() + "/encrypt_file/";
+//        String targetRootPath = StorageUtils.getSdPath() + "/encrypt_file/";
         String fileName = DesUtil.encrypt(sourceFile.getName());
         String targetPath = targetRootPath + fileName;
         File file = new File(targetPath);

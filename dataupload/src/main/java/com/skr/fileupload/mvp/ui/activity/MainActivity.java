@@ -2,7 +2,6 @@ package com.skr.fileupload.mvp.ui.activity;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.widget.AbsListView;
@@ -15,6 +14,7 @@ import com.skr.fileupload.mvp.ui.adapter.DirectoryListAdapter;
 import com.skr.fileupload.mvp.ui.view.IDirectoryFileView;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.server.FileServer;
+import com.skr.fileupload.utils.NetworkUtils;
 import com.skr.fileupload.wigets.DividerItemDecoration;
 import com.socks.library.KLog;
 
@@ -73,8 +73,37 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
 
     @Override
     public void initViews() {
-        mFabBtn.setOnClickListener(view -> Snackbar.make(view, getSdPaths(), Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show());
+        mFabBtn.setOnClickListener(view -> {
+            // wifi可用
+            if (NetworkUtils.isWifiAvailable(this)) {
+                KLog.d(LOG_TAG, "wifi can use");
+                // wifi已打开
+                if (NetworkUtils.getWifiEnabled(this)) {
+                    KLog.d(LOG_TAG, "wifi is Opened");
+                } else {
+                    KLog.d(LOG_TAG, "wifi is unOpened");
+                    NetworkUtils.setWifiEnabled(this, true);
+                }
+            } else {
+                KLog.d(LOG_TAG, "wifi can not use");
+            }
+
+            // wifi已连接
+            if (NetworkUtils.isWifiConnected(this)) {
+                KLog.d(LOG_TAG, "wifi is connected");
+            } else {
+                KLog.d(LOG_TAG, "wifi is unconnected");
+            }
+
+            KLog.d(LOG_TAG, "current network type： " + NetworkUtils.getNetworkType(this));
+            KLog.d(LOG_TAG, "is 4gG： " + NetworkUtils.is4G(this));
+            KLog.d(LOG_TAG, "mobile data is open： " + NetworkUtils.getDataEnabled(this)); ///***
+            KLog.d(LOG_TAG, "network is enabled： " + NetworkUtils.isAvailableByPing(this));
+            KLog.d(LOG_TAG, "network is connected： " + NetworkUtils.isConnected(this));
+
+        });
+//                Snackbar.make(view, getSdPaths(), Snackbar.LENGTH_LONG)
+//                .setAction("Action", null).show());
 
         initRecycleView();
 
