@@ -6,6 +6,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.StrictMode;
 
+import com.blankj.utilcode.utils.AppUtils;
 import com.skr.fileupload.di.component.ApplicationComponent;
 import com.skr.fileupload.di.component.DaggerApplicationComponent;
 import com.skr.fileupload.di.module.ApplicationModule;
@@ -48,7 +49,7 @@ public class App extends Application {
         sAppContext = this;
         initActivityLifecycleLogs();
         initStrictMode();
-        KLog.init(BuildConfig.LOG_DEBUG, "file_upload");
+        KLog.init(BuildConfig.LOG_DEBUG, AppUtils.getAppPackageName(this));
         GreenDaoManager.init();
         initApplicationComponent();
     }

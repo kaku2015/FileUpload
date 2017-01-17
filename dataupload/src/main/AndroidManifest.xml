@@ -33,11 +33,21 @@
                 <!--android:scheme="com.skr.fileupload.mvp.ui.activity"/>-->
             </intent-filter>
         </activity>
+
         <receiver android:name=".receiver.SdBroadcastReceiver">
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.MEDIA_MOUNTED"/>
-                <action android:name="android.intent.action.MEDIA_EJECT" />
+                <action android:name="android.intent.action.MEDIA_EJECT"/>
+
                 <data android:scheme="file"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".receiver.NetworkConnectChangedReceiver">
+            <intent-filter>
+                <action android:name="android.net.wifi.WIFI_STATE_CHANGED"/>
+                <action android:name="android.net.wifi.STATE_CHANGE"/>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
             </intent-filter>
         </receiver>
     </application>

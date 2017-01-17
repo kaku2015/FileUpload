@@ -63,6 +63,8 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        KLog.i("ip address: " + NetworkUtils.getIPAddress(true));
+        KLog.i("ip address: " + NetworkUtils.getIPAddress(false));
     }
 
 
@@ -76,30 +78,32 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
         mFabBtn.setOnClickListener(view -> {
             // wifi可用
             if (NetworkUtils.isWifiAvailable(this)) {
-                KLog.d(LOG_TAG, "wifi can use");
+                KLog.i(LOG_TAG, "wifi can use");
                 // wifi已打开
                 if (NetworkUtils.getWifiEnabled(this)) {
-                    KLog.d(LOG_TAG, "wifi is Opened");
+                    KLog.i(LOG_TAG, "wifi is Opened");
                 } else {
-                    KLog.d(LOG_TAG, "wifi is unOpened");
+                    KLog.i(LOG_TAG, "wifi is unOpened");
                     NetworkUtils.setWifiEnabled(this, true);
                 }
             } else {
-                KLog.d(LOG_TAG, "wifi can not use");
+                KLog.i(LOG_TAG, "wifi can not use");
+                NetworkUtils.setWifiEnabled(this, true);
+                KLog.i(LOG_TAG, "wifi is can use: " + NetworkUtils.isWifiAvailable(this));
             }
 
             // wifi已连接
             if (NetworkUtils.isWifiConnected(this)) {
-                KLog.d(LOG_TAG, "wifi is connected");
+                KLog.i(LOG_TAG, "wifi is connected");
             } else {
-                KLog.d(LOG_TAG, "wifi is unconnected");
+                KLog.i(LOG_TAG, "wifi is unconnected");
             }
 
-            KLog.d(LOG_TAG, "current network type： " + NetworkUtils.getNetworkType(this));
-            KLog.d(LOG_TAG, "is 4gG： " + NetworkUtils.is4G(this));
-            KLog.d(LOG_TAG, "mobile data is open： " + NetworkUtils.getDataEnabled(this)); ///***
-            KLog.d(LOG_TAG, "network is enabled： " + NetworkUtils.isAvailableByPing(this));
-            KLog.d(LOG_TAG, "network is connected： " + NetworkUtils.isConnected(this));
+            KLog.i(LOG_TAG, "current network type： " + NetworkUtils.getNetworkType(this));
+            KLog.i(LOG_TAG, "is 4gG： " + NetworkUtils.is4G(this));
+            KLog.i(LOG_TAG, "mobile data is open： " + NetworkUtils.getDataEnabled(this)); ///***
+            KLog.i(LOG_TAG, "network is enabled： " + NetworkUtils.isAvailableByPing(this));
+            KLog.i(LOG_TAG, "network is connected： " + NetworkUtils.isConnected(this));
 
         });
 //                Snackbar.make(view, getSdPaths(), Snackbar.LENGTH_LONG)
@@ -107,7 +111,7 @@ public class MainActivity extends BaseActivity implements IDirectoryFileView {
 
         initRecycleView();
 
-        startServer();
+//        startServer();
     }
 
     private String getSdPaths() {

@@ -1,6 +1,7 @@
 package com.skr.fileupload.utils;
 
 import android.content.Context;
+import android.os.SystemClock;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 
@@ -60,6 +61,19 @@ public class MyUtils {
             } catch (Throwable t) {
                 t.printStackTrace();
             }
+        }
+    }
+
+    private static long mLastTime = 0;
+    private static final int SPACE_TIME = 500;
+
+    private static boolean isRedundant() {
+        long time = SystemClock.elapsedRealtime();
+        if (time - mLastTime <= SPACE_TIME) {
+            return true;
+        } else {
+            mLastTime = time;
+            return false;
         }
     }
 }

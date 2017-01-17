@@ -2,6 +2,8 @@ package com.skr.fileupload.mvp.ui.adapter;
 
 
 import android.app.Activity;
+import android.content.IntentFilter;
+import android.net.wifi.WifiManager;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -21,11 +23,14 @@ import com.skr.fileupload.base.BaseRecyclerViewAdapter;
 import com.skr.fileupload.common.Constants;
 import com.skr.fileupload.mvp.entity.DirectoryFile;
 import com.skr.fileupload.mvp.presenter.impl.DirectoryFilePresenterImpl;
+import com.skr.fileupload.receiver.NetworkConnectChangedReceiver;
 import com.skr.fileupload.repository.file.DataRecordManager;
 import com.skr.fileupload.repository.network.ApiConstants;
 import com.skr.fileupload.utils.DesUtil;
 import com.skr.fileupload.utils.FileDesUtil;
+import com.skr.fileupload.utils.NetworkUtils;
 import com.skr.fileupload.utils.StreamTool;
+import com.skr.fileupload.utils.ToastUtil;
 import com.skr.fileupload.utils.TransformUtils;
 import com.socks.library.KLog;
 
@@ -159,12 +164,43 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
     private void setFileItem(FileHolder fileHolder, int position, DirectoryFile item) {
         fileHolder.mFileNameTv.setText(item.getName());
 
-        fileHolder.mUploadBtn.setOnClickListener(view -> startUpload(fileHolder, position, item));
+        fileHolder.mUploadBtn.setOnClickListener(view -> {
+            // wifi可用
+            if (NetworkUtils.isWifiAvailable(mContext)) {
+                KLog.i(LOG_TAG, "wifi can use");
+                // wifi已打开
+                if (NetworkUtils.getWifiEnabled(mContext)) {
+                    KLog.i(LOG_TAG, "wifi is Opened");
+                    startUpload(fileHolder, position, item);
+                } else {
+                    KLog.i(LOG_TAG, "wifi is unOpened");
+                    openWifi();
+                }
+            } else {
+                KLog.i(LOG_TAG, "wifi can not use");
+                openWifi();
+            }
+        });
 
         fileHolder.mPauseBtn.setOnClickListener(view -> mPaths.put(position, true));
     }
 
+    private void openWifi() {
+        NetworkUtils.setWifiEnabled(mContext, true);
+        ToastUtil.showShortToast("wifi准备中...");
+    }
+
+    private void registerNetworkReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        mContext.registerReceiver(new NetworkConnectChangedReceiver(), filter);
+    }
+
+
     private void startUpload(final FileHolder fileHolder, int position, DirectoryFile item) {
+//        NetworkUtils.setWifiEnabled(mContext, true);
+
         String path = item.getPath();
 //        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
         File file = new File(path);
