@@ -270,14 +270,14 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
             RandomAccessFile fileOutStream = null;
             Socket socket = init();
             try {
-                File encryptedFile = encryptFile(sourceFile);
+//                File encryptedFile = encryptFile(sourceFile);
 
 //                socket = new Socket(ApiConstants.HOST, ApiConstants.PORT);
                 outStream = socket.getOutputStream();
 
 //                String sourceId = GreenDaoManager.getInstance().getSourceIdByPath(encryptedFile.getAbsolutePath());
-                String sourceId = DataRecordManager.getSourceId(encryptedFile.getAbsolutePath());
-                outStream.write(getHeadBytes(encryptedFile, sourceId));
+                String sourceId = DataRecordManager.getSourceId(sourceFile.getAbsolutePath());
+                outStream.write(getHeadBytes(sourceFile, sourceId));
 
                 inStream = new PushbackInputStream(socket.getInputStream());
                 String response = StreamTool.readLine(inStream);
@@ -287,17 +287,17 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 String position = items[1].substring(items[1].indexOf("=") + 1);
                 if (sourceId == null) {//如果是第一次上传文件，在数据库中不存在该文件所绑定的资源id
 //                    GreenDaoManager.getInstance().saveUploadFileInfo(encryptedFile.getAbsolutePath(), responseSourceId);
-                    DataRecordManager.saveSourceId(responseSourceId, encryptedFile.getAbsolutePath());
+                    DataRecordManager.saveSourceId(responseSourceId, sourceFile.getAbsolutePath());
                 }
 
-                fileOutStream = new RandomAccessFile(encryptedFile, "r");
+                fileOutStream = new RandomAccessFile(sourceFile, "r");
                 fileOutStream.seek(Integer.valueOf(position));
                 byte[] buffer = new byte[1024];
                 int len = -1;
                 int length = Integer.valueOf(position);
                 KLog.i(LOG_TAG, "position: " + length);
                 int uploadCount = 0;
-                int fileLength = (int) encryptedFile.length();
+                int fileLength = (int) sourceFile.length();
                 while (isUploading(p) &&
                         ((len = fileOutStream.read(buffer)) != -1)) {
                     outStream.write(buffer, 0, len);
@@ -312,8 +312,8 @@ public class DirectoryListAdapter extends BaseRecyclerViewAdapter<DirectoryFile>
                 }
                 KLog.i(LOG_TAG, "uploaded file length: " + length);
 
-                if (length == encryptedFile.length()) {
-                    boolean result = encryptedFile.delete();
+                if (length == sourceFile.length()) {
+                    boolean result = sourceFile.delete();
                     KLog.i(LOG_TAG, "delete encrypt file is success: " + result);
 //                    GreenDaoManager.getInstance().deleteUploadFileInfo(encryptedFile.getAbsolutePath());
                 }
